@@ -1,0 +1,5 @@
+langchain-ollama
+langchain-core
+duckduckgo-search
+pyttsx3
+prompt_toolkit
