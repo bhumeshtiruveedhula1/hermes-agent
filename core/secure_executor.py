@@ -1,6 +1,8 @@
 # core/secure_executor.py
 
 from langchain_core.messages import SystemMessage, HumanMessage
+from core.audit.audit_logger import AuditLogger
+from core.audit.audit_event import AuditEvent
 
 
 class SecureExecutor:
@@ -27,6 +29,7 @@ class SecureExecutor:
         self.permission_store = permission_store
         self.credential_vault = credential_vault
         self.system_prompt = system_prompt
+        self.audit = AuditLogger()
 
     def execute_plan(self, plan: dict) -> str:
         results = []
@@ -41,16 +44,44 @@ class SecureExecutor:
                     SystemMessage(content=self.system_prompt),
                     HumanMessage(content=description)
                 ])
+
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="llm_reasoning",
+                        decision="allowed",
+                        metadata={"description": description[:120]}
+                    )
+                )
+
                 results.append(response.content)
                 continue
 
             # ---------------- TOOL EXISTS ----------------
             if not self.tool_registry.get(tool_name):
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="unknown_tool"
+                    )
+                )
                 results.append(f"[BLOCKED] Unknown tool: {tool_name}")
                 continue
 
             # ---------------- TOOL APPROVED ----------------
             if not self.tool_registry.is_allowed(tool_name):
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="tool_not_approved"
+                    )
+                )
                 results.append(f"[BLOCKED] Tool not approved: {tool_name}")
                 continue
 
@@ -59,6 +90,16 @@ class SecureExecutor:
             if not self.permission_store.has_permission(
                 tool_name, required_permission
             ):
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="permission_denied",
+                        metadata={"required_permission": required_permission}
+                    )
+                )
                 results.append(
                     f"[BLOCKED] Permission '{required_permission}' not granted for {tool_name}"
                 )
@@ -67,12 +108,31 @@ class SecureExecutor:
             # ---------------- CREDENTIAL CHECK ----------------
             if self.tool_registry._tools[tool_name].requires_credentials:
                 if not self.credential_vault.has_credentials(tool_name):
+                    self.audit.log(
+                        AuditEvent(
+                            phase="execution",
+                            action="tool_call",
+                            tool_name=tool_name,
+                            decision="blocked",
+                            reason="missing_credentials"
+                        )
+                    )
                     results.append(
                         f"[BLOCKED] Missing credentials for tool: {tool_name}"
                     )
                     continue
 
             # ---------------- SANDBOXED EXECUTION (PLACEHOLDER) ----------------
+            self.audit.log(
+                AuditEvent(
+                    phase="execution",
+                    action="tool_call",
+                    tool_name=tool_name,
+                    decision="allowed",
+                    reason="sandbox_execution_disabled"
+                )
+            )
+
             results.append(
                 f"[SANDBOX] Tool '{tool_name}' passed all checks (execution disabled)"
             )

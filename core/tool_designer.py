@@ -2,6 +2,8 @@
 
 import json
 from langchain_core.messages import SystemMessage, HumanMessage
+from core.audit.audit_logger import AuditLogger
+from core.audit.audit_event import AuditEvent
 
 
 class ToolDesignerAgent:
@@ -93,6 +95,22 @@ Return VALID JSON ONLY.
             raise RuntimeError(
               "❌ SECURITY VIOLATION: ToolDesignerAgent included credentials in inputs"
             )
+
+
+        audit = AuditLogger()
+
+        audit.log(
+            AuditEvent(
+                phase="tool_design",
+                action="design",
+                tool_name=data.get("tool_name"),
+                decision="generated",
+                metadata={
+                    "tool_type": data.get("tool_type"),
+                    "inputs_count": len(data.get("inputs", []))
+                }
+            )
+        )
 
 
         # ---------- HARD SCHEMA VALIDATION ----------
