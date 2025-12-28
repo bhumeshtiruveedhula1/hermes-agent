@@ -26,9 +26,15 @@ from core.capability_detector import is_capability_request
 from core.approval import approval_prompt
 from core.tool_code_generator import ToolCodeGeneratorAgent
 from core.code_approval import code_approval_prompt
+from core.credential_vault import CredentialVault
+
 
 
 init(autoreset=True)
+
+# ---------------- CREDENTIAL VAULT ----------------
+credential_vault = CredentialVault()
+
 
 # ---------------- MEMORY ----------------
 memory = MemoryManager()
@@ -67,17 +73,49 @@ def speak_out_loud(text: str):
 tool_registry = ToolRegistry()
 
 tool_registry.register(
-    ToolMeta("search_web", tools_web.search_web, approved=True, source="builtin")
+    ToolMeta(
+        "search_web",
+        tools_web.search_web,
+        approved=True,
+        source="builtin"
+    )
 )
+
 tool_registry.register(
-    ToolMeta("check_inbox", tools_email.check_inbox, approved=True, source="builtin", requires_credentials=True)
+    ToolMeta(
+        "check_inbox",
+        tools_email.check_inbox,
+        approved=True,
+        source="builtin",
+        requires_credentials=True
+    )
 )
+
 tool_registry.register(
-    ToolMeta("draft_reply", tools_email.draft_reply, approved=True, source="builtin", requires_credentials=True)
+    ToolMeta(
+        "draft_reply",
+        tools_email.draft_reply,
+        approved=True,
+        source="builtin",
+        requires_credentials=True
+    )
 )
+
 tool_registry.register(
-    ToolMeta("speak_out_loud", speak_out_loud, approved=True, source="builtin")
+    ToolMeta(
+        "speak_out_loud",
+        speak_out_loud,
+        approved=True,
+        source="builtin"
+    )
 )
+
+# ---------------- CREDENTIAL VAULT ----------------
+credential_vault.register_placeholder(
+    tool_name="check_inbox",
+    credential_type="gmail_oauth"
+)
+
 
 # ---------------- EXECUTOR ----------------
 executor = ExecutorAgent(
