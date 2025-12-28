@@ -28,12 +28,28 @@ from core.tool_code_generator import ToolCodeGeneratorAgent
 from core.code_approval import code_approval_prompt
 from core.credential_vault import CredentialVault
 
+from core.secure_executor import SecureExecutor
+from core.permission_store import PermissionStore
 
 
 init(autoreset=True)
 
 # ---------------- CREDENTIAL VAULT ----------------
 credential_vault = CredentialVault()
+
+# ---------------- SECURITY STORES ----------------
+permission_store = PermissionStore()
+credential_vault = CredentialVault()
+
+# Example: built-in tool permissions
+permission_store.grant("search_web", "default")
+permission_store.grant("check_inbox", "default")
+
+credential_vault.register_placeholder(
+    tool_name="check_inbox",
+    credential_type="gmail_oauth"
+)
+
 
 
 # ---------------- MEMORY ----------------
@@ -116,13 +132,23 @@ credential_vault.register_placeholder(
     credential_type="gmail_oauth"
 )
 
+USE_SECURE_EXECUTOR = True
 
 # ---------------- EXECUTOR ----------------
-executor = ExecutorAgent(
-    llm=agents.manager_llm,
-    tool_registry=tool_registry,
-    system_prompt=system_prompt
-)
+if USE_SECURE_EXECUTOR:
+    executor = SecureExecutor(
+        llm=agents.manager_llm,
+        tool_registry=tool_registry,
+        permission_store=permission_store,
+        credential_vault=credential_vault,
+        system_prompt=system_prompt
+    )
+else:
+    executor = ExecutorAgent(
+        llm=agents.manager_llm,
+        tool_registry=tool_registry,
+        system_prompt=system_prompt
+    )
 
 # ---------------- CHAT LOOP ----------------
 def start_chat_session():
