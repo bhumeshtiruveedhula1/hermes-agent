@@ -34,8 +34,7 @@ from core.permission_store import PermissionStore
 
 init(autoreset=True)
 
-# ---------------- CREDENTIAL VAULT ----------------
-credential_vault = CredentialVault()
+
 
 # ---------------- SECURITY STORES ----------------
 permission_store = PermissionStore()
@@ -44,6 +43,8 @@ credential_vault = CredentialVault()
 # Example: built-in tool permissions
 permission_store.grant("search_web", "default")
 permission_store.grant("check_inbox", "default")
+
+# ---------------- CREDENTIAL VAULT ----------------
 
 credential_vault.register_placeholder(
     tool_name="check_inbox",
@@ -126,11 +127,7 @@ tool_registry.register(
     )
 )
 
-# ---------------- CREDENTIAL VAULT ----------------
-credential_vault.register_placeholder(
-    tool_name="check_inbox",
-    credential_type="gmail_oauth"
-)
+
 
 USE_SECURE_EXECUTOR = True
 
