@@ -121,11 +121,16 @@ def start_chat_session():
             if is_capability_request(user_input):
                 print(Fore.MAGENTA + "\n🧠 Capability request detected.")
 
-                with timed("tool_design", metrics):
-                    tool_design = tool_designer.design_tool(
-                    user_input=user_input,
-                    available_tools=tool_registry.list_tools()
-                    )
+                try:
+                    with timed("tool_design", metrics):
+                        tool_design = tool_designer.design_tool(
+                            user_input=user_input,
+                            available_tools=tool_registry.list_tools()
+                        )
+                except RuntimeError as e:
+                    print(Fore.RED + str(e))
+                    continue
+
                 approved_design = approval_prompt(tool_design)
                 if not approved_design:
                     print(Fore.RED + "❌ Tool design rejected.")
