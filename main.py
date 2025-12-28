@@ -24,6 +24,9 @@ from core.timing import timed
 from core.tool_designer import ToolDesignerAgent
 from core.capability_detector import is_capability_request
 from core.approval import approval_prompt
+from core.tool_code_generator import ToolCodeGeneratorAgent
+from core.code_approval import code_approval_prompt
+
 
 init(autoreset=True)
 
@@ -48,6 +51,8 @@ planner = PlannerAgent(agents.manager_llm)
 critic = CriticAgent(agents.manager_llm)
 summarizer = MemorySummarizer(agents.manager_llm)
 tool_designer = ToolDesignerAgent(agents.manager_llm)
+tool_code_generator = ToolCodeGeneratorAgent(agents.manager_llm)
+
 
 # ---------------- VOICE TOOL ----------------
 @tool
@@ -109,30 +114,61 @@ def start_chat_session():
                 memory.update_preference(k, v)
 
             metrics = {}
-
+            
             # ==================================================
-            # 🔒 STEP 2 — HARD CAPABILITY GATE
+            # 🔒 STEP 3 — DESIGN → APPROVAL → CODE → APPROVAL
             # ==================================================
             if is_capability_request(user_input):
                 print(Fore.MAGENTA + "\n🧠 Capability request detected.")
 
-                tool_design = tool_designer.design_tool(
+                with timed("tool_design", metrics):
+                    tool_design = tool_designer.design_tool(
                     user_input=user_input,
                     available_tools=tool_registry.list_tools()
+                    )
+                approved_design = approval_prompt(tool_design)
+                if not approved_design:
+                    print(Fore.RED + "❌ Tool design rejected.")
+                    continue
+                
+                with timed("tool_code_generation", metrics):
+                    tool_code = tool_code_generator.generate_code(tool_design)
+                
+                approved_code = code_approval_prompt(tool_code)
+                if not approved_code:
+                    print(Fore.RED + "❌ Tool code rejected.")
+                    continue
+                # 🔒 SAFE REGISTRATION (NOT EXECUTABLE)
+                tool_registry.register_generated_tool(
+                    name=tool_design["tool_name"],
+                    function=None  # code not loaded yet
                 )
 
-                approved = approval_prompt(tool_design)
 
-                if approved:
-                    memory.store_long_term(
-                        "decision",
-                        f"Approved tool design: {tool_design.get('tool_name')}"
-                    )
-                    print(Fore.GREEN + "✅ Tool design approved (execution disabled).")
-                else:
-                    print(Fore.RED + "❌ Tool design rejected.")
+                memory.store_long_term(
+                    "decision",
+                    f"Generated tool approved (inactive): {tool_design['tool_name']}"
+                )
+                memory.store_long_term(
+                    "generated_tool_code",
+                    f"Tool: {tool_design['tool_name']}\n\n{tool_code}"
+                )
+
+
+
+                print(Fore.GREEN + "✅ Tool registered (inactive). Execution disabled.")
+
+                print(Fore.CYAN + "\n⏱️ Performance:")
+                for k, v in metrics.items():
+                    print(f"  {k}: {v:.2f}s")
 
                 continue
+            # ==================================================
+                
+                
+                
+
+                
             # ==================================================
 
             # -------- PLANNING --------

@@ -28,3 +28,16 @@ class ToolRegistry:
 
     def list_tools(self):
         return list(self._tools.keys())
+    # add inside ToolRegistry class
+
+    def register_generated_tool(self, name: str, function):
+        self.register(
+            ToolMeta(
+                name=name,
+                function=function,
+                approved=False,      # 🔒 always false initially
+                source="generated",
+                requires_credentials=False
+            )
+        )
+
