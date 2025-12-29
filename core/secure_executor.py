@@ -122,7 +122,22 @@ class SecureExecutor:
                     )
                     continue
 
-            # ---------------- EXECUTION GATE ----------------
+            # ================== 🔒 C1: ABSOLUTE EXECUTION GATE ==================
+            if not self.execution_enabled:
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="execution_disabled"
+                    )
+                )
+                results.append("[BLOCKED] Execution disabled by system")
+                continue
+            # ===================================================================
+
+            # ---------------- EXECUTION GATE (EXISTING – LEFT INTACT) ----------------
             if not self.execution_enabled:
                 self.audit.log(
                     AuditEvent(
@@ -145,10 +160,24 @@ class SecureExecutor:
                     credentials = self.credential_vault.inject(tool_name)
 
                 tool_fn = self.tool_registry.get(tool_name)
-                result = tool_fn.invoke({
+                payload = {}
+
+                if tool_name == "search_web":
+                    payload["query"] = description
+
+                elif tool_name == "speak_out_loud":
+                    payload["text"] = description
+
+                elif tool_name in ("check_inbox", "draft_reply"):
+                    payload["query"] = description
+
+                payload = {"text": description} if tool_name == "speak_out_loud" else {
                     **credentials,
                     "query": description
-                })
+                }
+
+                result = tool_fn.invoke(payload)
+
 
                 results.append(str(result))
 

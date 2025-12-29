@@ -13,6 +13,12 @@ SYSTEM_CONTROL_KEYWORDS = [
 ]
 
 
-def is_system_control_request(user_input: str) -> bool:
-    text = user_input.lower()
-    return any(keyword in text for keyword in SYSTEM_CONTROL_KEYWORDS)
+def is_system_control_request(text: str) -> bool:
+    text = text.lower().strip()
+    return (
+        text == "list agents"
+        or text == "run scheduler"
+        or text == "audit replay"
+        or text.startswith("enable agent")
+        or text.startswith("disable agent")
+    )

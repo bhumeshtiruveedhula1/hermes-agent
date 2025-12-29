@@ -57,4 +57,20 @@ Output JSON ONLY. No explanations.
             self.system_prompt,
             HumanMessage(content=user_input)
         ])
-        return json.loads(response.content)
+        plan = json.loads(response.content)
+
+        allowed_tools = {
+          "search_web",
+          "check_inbox",
+          "draft_reply",
+          "speak_out_loud",
+          None
+        }
+
+        for step in plan.get("steps", []):
+          if step.get("tool") not in allowed_tools:
+            step["tool"] = None  # force safe fallback
+
+        return plan
+
+        

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "daily_news_summary",
+    "tool_name": "daily_news_summary",
+    "schedule": "daily",
+    "permissions": [
+      "default"
+    ],
+    "enabled": true,
+    "last_run_at": null
+  }
+]

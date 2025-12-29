@@ -1,21 +1,35 @@
 # core/control_handler.py
 
-def handle_system_control(user_input: str) -> str:
-    text = user_input.lower()
+from core.audit.audit_replay import replay_audit
 
-    if "enable" in text and "scheduler" in text:
-        return "Scheduler enable request detected. Background agents must be enabled explicitly via configuration."
 
-    if "disable" in text and "scheduler" in text:
-        return "Scheduler disable request detected. No scheduler is currently running."
+def handle_system_control(user_input: str, agent_store):
+    text = user_input.lower().strip()
 
-    if "revoke" in text and "permission" in text:
-        return "Permission revocation requires explicit tool or admin interface. No action taken."
+    if text == "list agents":
+        agents = agent_store.list_all()
+        if not agents:
+            return "No agents registered."
+        return "\n".join(
+            f"- {a.name} | enabled={a.enabled} | schedule={a.schedule}"
+            for a in agents
+        )
 
-    if "remove" in text and "vault" in text:
-        return "Credential vault entries cannot be modified via chat. No action taken."
+    if text in ("audit", "audit replay"):
+        return replay_audit()
 
-    if "execution_enabled" in text:
-        return "Execution mode can only be changed at startup configuration."
+    if text.startswith("enable agent"):
+        name = text.replace("enable agent", "").strip()
+        agent_store.enable(name)
+        return f"✅ Agent '{name}' enabled"
 
-    return "System control request acknowledged, but no executable action is available."
+    if text.startswith("disable agent"):
+        name = text.replace("disable agent", "").strip()
+        agent_store.disable(name)
+        return f"⏸️ Agent '{name}' disabled"
+    
+    if text == "run scheduler":
+        return "RUN_SCHEDULER"
+
+
+    return "Unknown control command."
