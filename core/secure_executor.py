@@ -22,7 +22,9 @@ class SecureExecutor:
         tool_registry,
         permission_store,
         credential_vault,
-        system_prompt: str
+        system_prompt: str,
+        execution_enabled: bool = False  # 🔒 default OFF
+
     ):
         self.llm = llm
         self.tool_registry = tool_registry
@@ -30,6 +32,7 @@ class SecureExecutor:
         self.credential_vault = credential_vault
         self.system_prompt = system_prompt
         self.audit = AuditLogger()
+        self.execution_enabled = execution_enabled
 
     def execute_plan(self, plan: dict) -> str:
         results = []
@@ -121,20 +124,46 @@ class SecureExecutor:
                         f"[BLOCKED] Missing credentials for tool: {tool_name}"
                     )
                     continue
+            credentials = {}
+            if self.tool_registry._tools[tool_name].requires_credentials:
+                credentials = self.credential_vault.inject(tool_name)
 
-            # ---------------- SANDBOXED EXECUTION (PLACEHOLDER) ----------------
+            # ---------------- REAL TOOL EXECUTION ----------------
+            if not self.execution_enabled:
+                raise RuntimeError("Execution attempted while execution is disabled")
+
+            try:
+                tool_fn = self.tool_registry.get(tool_name)
+
+                if not tool_fn:
+                    raise ValueError(f"Tool '{tool_name}' not found in registry")
+
+                result = tool_fn.invoke({
+                    **credentials,
+                    "query": description
+                })
+
+                results.append(str(result))
+
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="executed",
+                        reason="success"
+                    )
+                )
+
+            except Exception as e:
+                results.append(f"[ERROR] Tool execution failed: {e}")
+
             self.audit.log(
                 AuditEvent(
                     phase="execution",
                     action="tool_call",
                     tool_name=tool_name,
-                    decision="allowed",
-                    reason="sandbox_execution_disabled"
+                    decision="failed",
+                    reason=str(e)
                 )
             )
-
-            results.append(
-                f"[SANDBOX] Tool '{tool_name}' passed all checks (execution disabled)"
-            )
-
-        return "\n\n".join(results)

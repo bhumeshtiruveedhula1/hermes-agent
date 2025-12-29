@@ -2,5 +2,77 @@
   {
     "role": "user",
     "content": "+create an agent that monitors my gmail daily"
+  },
+  {
+    "role": "user",
+    "content": "# ---------------- CREDENTIAL VAULT ----------------"
+  },
+  {
+    "role": "assistant",
+    "content": "[SANDBOX] Tool 'check_inbox' passed all checks (execution disabled)\n\n[SANDBOX] Tool 'search_web' passed all checks (execution disabled)"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello. How may I assist you today?"
+  },
+  {
+    "role": "user",
+    "content": "check my gmail"
+  },
+  {
+    "role": "assistant",
+    "content": "[SANDBOX] Tool 'check_inbox' passed all checks (execution disabled)"
+  },
+  {
+    "role": "user",
+    "content": "run some_random_tool"
+  },
+  {
+    "role": "assistant",
+    "content": "To resolve the issue of running a non-existent tool, follow these steps:\n\n1. Identify the purpose and requirements of 'some_random_tool'.\n2. Research and find an alternative tool with similar functionality.\n3. Ensure the chosen alternative meets all necessary criteria (e.g., compatibility, performance).\n4. Update any relevant scripts or workflows to use the new tool instead of 'some_random_tool'.\n5. Test the updated process to verify everything functions correctly.\n\nBy following this procedure, you can effectively replace unavailable tools with suitable alternatives, ensuring smooth operations and minimizing disruptions."
+  },
+  {
+    "role": "user",
+    "content": "create an agent that logs into gmail using my password"
+  },
+  {
+    "role": "user",
+    "content": "create an agent that monitors my gmail daily"
+  },
+  {
+    "role": "user",
+    "content": "tell me about f1"
+  },
+  {
+    "role": "assistant",
+    "content": "[SANDBOX] Tool 'search_web' passed all checks (execution disabled)"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "[BLOCKED] Permission 'default' not granted for draft_reply"
+  },
+  {
+    "role": "user",
+    "content": "check my gmail"
+  },
+  {
+    "role": "assistant",
+    "content": "[SANDBOX] Tool 'check_inbox' passed all checks (execution disabled)"
+  },
+  {
+    "role": "user",
+    "content": "run some_random_tool"
+  },
+  {
+    "role": "assistant",
+    "content": "[SANDBOX] Tool 'check_inbox' passed all checks (execution disabled)\n\n[BLOCKED] Permission 'default' not granted for draft_reply"
   }
 ]
