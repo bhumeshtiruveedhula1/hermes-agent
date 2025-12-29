@@ -24,7 +24,6 @@ class SecureExecutor:
         credential_vault,
         system_prompt: str,
         execution_enabled: bool = False  # 🔒 default OFF
-
     ):
         self.llm = llm
         self.tool_registry = tool_registry
@@ -90,9 +89,7 @@ class SecureExecutor:
 
             # ---------------- PERMISSION CHECK ----------------
             required_permission = "default"
-            if not self.permission_store.has_permission(
-                tool_name, required_permission
-            ):
+            if not self.permission_store.has_permission(tool_name, required_permission):
                 self.audit.log(
                     AuditEvent(
                         phase="execution",
@@ -124,20 +121,30 @@ class SecureExecutor:
                         f"[BLOCKED] Missing credentials for tool: {tool_name}"
                     )
                     continue
-            credentials = {}
-            if self.tool_registry._tools[tool_name].requires_credentials:
-                credentials = self.credential_vault.inject(tool_name)
+
+            # ---------------- EXECUTION GATE ----------------
+            if not self.execution_enabled:
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="execution_disabled"
+                    )
+                )
+                results.append(
+                    f"[SANDBOX] Tool '{tool_name}' passed all checks (execution disabled)"
+                )
+                continue
 
             # ---------------- REAL TOOL EXECUTION ----------------
-            if not self.execution_enabled:
-                raise RuntimeError("Execution attempted while execution is disabled")
-
             try:
+                credentials = {}
+                if self.tool_registry._tools[tool_name].requires_credentials:
+                    credentials = self.credential_vault.inject(tool_name)
+
                 tool_fn = self.tool_registry.get(tool_name)
-
-                if not tool_fn:
-                    raise ValueError(f"Tool '{tool_name}' not found in registry")
-
                 result = tool_fn.invoke({
                     **credentials,
                     "query": description
@@ -158,12 +165,15 @@ class SecureExecutor:
             except Exception as e:
                 results.append(f"[ERROR] Tool execution failed: {e}")
 
-            self.audit.log(
-                AuditEvent(
-                    phase="execution",
-                    action="tool_call",
-                    tool_name=tool_name,
-                    decision="failed",
-                    reason=str(e)
+                self.audit.log(
+                    AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="failed",
+                        reason=str(e)
+                    )
                 )
-            )
+
+        # 🔒 ABSOLUTE CONTRACT: ALWAYS RETURN STRING
+        return "\n\n".join(results)

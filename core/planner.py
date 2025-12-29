@@ -25,10 +25,24 @@ You MUST output JSON in EXACTLY this format:
 }
 
 AVAILABLE TOOLS (YOU MAY ONLY USE THESE):
-- search_web        → for web research
-- check_inbox       → to check email inbox
-- draft_reply       → to draft an email reply
+- search_web        → for web research ONLY
+- check_inbox       → to check email inbox ONLY
+- draft_reply       → to draft email replies ONLY
 - speak_out_loud    → to speak text aloud
+
+CRITICAL INTENT RULES (MANDATORY):
+- Greetings, small talk, or casual conversation:
+  → tool MUST be null OR speak_out_loud
+  → NEVER use search_web, check_inbox, or draft_reply
+
+- Writing text, chatting, explaining concepts:
+  → tool MUST be null
+
+- Email-related tasks ONLY:
+  → use check_inbox or draft_reply
+
+- Web research ONLY:
+  → use search_web
 
 STRICT RULES:
 - Use ONLY the tool names listed above.
@@ -38,6 +52,7 @@ STRICT RULES:
 - Do NOT mention browsers, apps, or clients.
 - Output JSON ONLY. No explanations.
 """)
+
 
     def create_plan(self, user_input: str) -> dict:
         response = self.llm.invoke([

@@ -43,7 +43,10 @@ credential_vault = CredentialVault()
 # Example: built-in tool permissions
 permission_store.grant("search_web", "default")
 permission_store.grant("check_inbox", "default")
-permission_store.grant("draft_reply", "default")
+# DO NOT grant permission yet
+# permission_store.grant("draft_reply", "default")
+permission_store.grant("speak_out_loud", "default")
+
 
 
 # ---------------- CREDENTIAL VAULT ----------------
@@ -140,10 +143,9 @@ if USE_SECURE_EXECUTOR:
         tool_registry=tool_registry,
         permission_store=permission_store,
         credential_vault=credential_vault,
-        system_prompt=system_prompt
+        system_prompt=system_prompt,
         execution_enabled=True  # 🔥 explicit opt-in
-
-    )
+        )
 else:
     executor = ExecutorAgent(
         llm=agents.manager_llm,
