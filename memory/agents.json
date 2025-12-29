@@ -8,5 +8,45 @@
     ],
     "enabled": true,
     "last_run_at": null
+  },
+  {
+    "name": "daily_ai_news_summary",
+    "tool_name": "daily_ai_news_summary",
+    "schedule": "daily",
+    "permissions": [
+      "default"
+    ],
+    "enabled": false,
+    "last_run_at": null
+  },
+  {
+    "name": "cybersecurity_incident_summary",
+    "tool_name": "cybersecurity_incident_summary",
+    "schedule": "daily",
+    "permissions": [
+      "default"
+    ],
+    "enabled": true,
+    "last_run_at": null
+  },
+  {
+    "name": "daily_ai_learning_summary",
+    "tool_name": "daily_ai_learning_summary",
+    "schedule": "daily",
+    "permissions": [
+      "default"
+    ],
+    "enabled": true,
+    "last_run_at": null
+  },
+  {
+    "name": "folder_monitor",
+    "tool_name": "folder_monitor",
+    "schedule": "daily",
+    "permissions": [
+      "default"
+    ],
+    "enabled": false,
+    "last_run_at": null
   }
 ]

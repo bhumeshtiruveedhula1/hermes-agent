@@ -36,6 +36,12 @@ ABSOLUTE SECURITY RULES:
 - Assume credentials are managed securely by the platform
 - Mention credentials ONLY in risks or execution_constraints
 - Violating this rule is a FAILURE
+ABSOLUTE RULES:
+- Tool type MUST be: {forced_tool_type}
+- If allow_credentials = false:
+  - Inputs MUST NOT include credentials
+  - NO email, inbox, login, oauth, password references
+
 
 Required JSON schema:
 
@@ -64,7 +70,11 @@ Required JSON schema:
 """
         )
 
-    def design_tool(self, user_input: str, available_tools: list) -> dict:
+    def design_tool(self,
+    user_input: str,
+    available_tools: list,
+    forced_tool_type: str,
+    allow_credentials: bool) -> dict:
         """Design a new tool based on user request"""
 
         response = self.llm.invoke([

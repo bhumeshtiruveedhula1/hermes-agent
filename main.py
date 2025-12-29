@@ -32,6 +32,7 @@ from core.scheduler.scheduler import Scheduler
 from core.agent_store import AgentStore
 from core.intent_router import is_system_control_request
 from core.control_handler import handle_system_control
+from core.capability_detector import detect_capability, CapabilityType
 
 init(autoreset=True)
 
@@ -177,11 +178,22 @@ def start_chat_session():
             if is_capability_request(user_input):
                 print(Fore.MAGENTA + "\n🧠 Capability request detected.")
 
+                capability = detect_capability(user_input)
+
+                # 🚨 HARD BLOCK — credential-based agents
+                if capability == CapabilityType.CREDENTIAL_REQUIRED:
+                    print(Fore.RED + "❌ Credential-based agents are not allowed in Hermes v1.")
+                    continue
+
                 try:
                     tool_design = tool_designer.design_tool(
-                        user_input=user_input,
-                        available_tools=tool_registry.list_tools()
-                    )
+                    user_input=user_input,
+                    available_tools=tool_registry.list_tools(),
+                    forced_tool_type=capability.value,
+                    allow_credentials=(capability == CapabilityType.CREDENTIAL_REQUIRED)
+                )
+
+
                 except RuntimeError as e:
                     print(Fore.RED + str(e))
                     continue
