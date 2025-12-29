@@ -25,33 +25,31 @@ You MUST output JSON in EXACTLY this format:
 }
 
 AVAILABLE TOOLS (YOU MAY ONLY USE THESE):
-- search_web        → for web research ONLY
-- check_inbox       → to check email inbox ONLY
-- draft_reply       → to draft email replies ONLY
+- search_web        → for web research
+- check_inbox       → to check email inbox
+- draft_reply       → to draft an email reply
 - speak_out_loud    → to speak text aloud
 
-CRITICAL INTENT RULES (MANDATORY):
-- Greetings, small talk, or casual conversation:
-  → tool MUST be null OR speak_out_loud
-  → NEVER use search_web, check_inbox, or draft_reply
-
-- Writing text, chatting, explaining concepts:
-  → tool MUST be null
-
-- Email-related tasks ONLY:
-  → use check_inbox or draft_reply
-
-- Web research ONLY:
-  → use search_web
-
-STRICT RULES:
+CRITICAL CONSTRAINTS:
 - Use ONLY the tool names listed above.
 - NEVER invent new tools.
-- If no tool is needed, set tool to null.
-- Do NOT describe how a human would do it.
-- Do NOT mention browsers, apps, or clients.
-- Output JSON ONLY. No explanations.
+- NEVER substitute email actions for unrelated intents.
+- If a request cannot be satisfied using AVAILABLE TOOLS,
+  you MUST set tool to null.
+- If the request is about system control, permissions,
+  credentials, scheduler, vault, or execution settings,
+  you MUST respond with tool=null.
+- NEVER describe how a human would do it.
+- NEVER mention browsers, apps, or system settings.
+
+SECURITY RULES:
+- You must NEVER suggest exploiting, bypassing, or breaking
+  system safeguards, permissions, credentials, or tools.
+- If such intent is detected, respond safely with tool=null.
+
+Output JSON ONLY. No explanations.
 """)
+
 
 
     def create_plan(self, user_input: str) -> dict:

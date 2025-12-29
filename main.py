@@ -31,32 +31,31 @@ from core.credential_vault import CredentialVault
 from core.secure_executor import SecureExecutor
 from core.permission_store import PermissionStore
 
+from core.scheduler.scheduled_agent import ScheduledAgent
+from core.scheduler.scheduler import Scheduler
+from core.agent_store import AgentStore
+from core.intent_router import is_system_control_request
+from core.control_handler import handle_system_control
+
 
 init(autoreset=True)
 
-
-
-# ---------------- SECURITY STORES ----------------
+# ---------------- STORES ----------------
+agent_store = AgentStore()
 permission_store = PermissionStore()
 credential_vault = CredentialVault()
 
-# Example: built-in tool permissions
+# ---------------- PERMISSIONS ----------------
 permission_store.grant("search_web", "default")
 permission_store.grant("check_inbox", "default")
-# DO NOT grant permission yet
-# permission_store.grant("draft_reply", "default")
 permission_store.grant("speak_out_loud", "default")
-
-
+# intentionally NOT granting draft_reply yet
 
 # ---------------- CREDENTIAL VAULT ----------------
-
 credential_vault.register_placeholder(
     tool_name="check_inbox",
     credential_type="gmail_oauth"
 )
-
-
 
 # ---------------- MEMORY ----------------
 memory = MemoryManager()
@@ -74,6 +73,7 @@ User Preferences:
 - Verbosity: {preferences['verbosity']}
 """
 
+
 # ---------------- AGENTS ----------------
 planner = PlannerAgent(agents.manager_llm)
 critic = CriticAgent(agents.manager_llm)
@@ -81,26 +81,23 @@ summarizer = MemorySummarizer(agents.manager_llm)
 tool_designer = ToolDesignerAgent(agents.manager_llm)
 tool_code_generator = ToolCodeGeneratorAgent(agents.manager_llm)
 
-
 # ---------------- VOICE TOOL ----------------
 @tool
 def speak_out_loud(text: str):
-    """Convert text to speech."""
+    """
+    Speak the given text aloud using text-to-speech.
+    """
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
     return "Spoken."
 
+
 # ---------------- TOOL REGISTRY ----------------
 tool_registry = ToolRegistry()
 
 tool_registry.register(
-    ToolMeta(
-        "search_web",
-        tools_web.search_web,
-        approved=True,
-        source="builtin"
-    )
+    ToolMeta("search_web", tools_web.search_web, approved=True, source="builtin")
 )
 
 tool_registry.register(
@@ -124,34 +121,24 @@ tool_registry.register(
 )
 
 tool_registry.register(
-    ToolMeta(
-        "speak_out_loud",
-        speak_out_loud,
-        approved=True,
-        source="builtin"
-    )
+    ToolMeta("speak_out_loud", speak_out_loud, approved=True, source="builtin")
 )
 
-
-
-USE_SECURE_EXECUTOR = True
-
 # ---------------- EXECUTOR ----------------
-if USE_SECURE_EXECUTOR:
-    executor = SecureExecutor(
-        llm=agents.manager_llm,
-        tool_registry=tool_registry,
-        permission_store=permission_store,
-        credential_vault=credential_vault,
-        system_prompt=system_prompt,
-        execution_enabled=True  # 🔥 explicit opt-in
-        )
-else:
-    executor = ExecutorAgent(
-        llm=agents.manager_llm,
-        tool_registry=tool_registry,
-        system_prompt=system_prompt
-    )
+executor = SecureExecutor(
+    llm=agents.manager_llm,
+    tool_registry=tool_registry,
+    permission_store=permission_store,
+    credential_vault=credential_vault,
+    system_prompt=system_prompt,
+    execution_enabled=True  # explicit opt-in
+)
+
+# ---------------- SCHEDULER ----------------
+scheduler = Scheduler(
+    executor=executor,
+    agents=agent_store.list_all()
+)
 
 # ---------------- CHAT LOOP ----------------
 def start_chat_session():
@@ -162,29 +149,56 @@ def start_chat_session():
         try:
             user_input = prompt(
                 HTML('<b><style color="ansigreen">👤 YOU:</style></b> ')
-            )
+            ).strip()
 
             # -------- EXIT --------
-            if user_input.lower().strip() in ["exit", "quit"]:
+            if user_input in ("exit", "quit"):
                 summary = summarizer.summarize_session(memory.load_session())
                 memory.store_long_term("summary", summary)
                 memory.clear_session()
                 print(Fore.YELLOW + "🧠 Session summarized and stored.")
-                print("👋 Bye!")
                 break
 
+            # -------- AGENT CONTROLS (PHASE 1) --------
+            if user_input == "list agents":
+                for a in agent_store.list_all():
+                    print(f"- {a.name} | enabled={a.enabled} | schedule={a.schedule}")
+                continue
+
+            if user_input.startswith("enable agent"):
+                name = user_input.replace("enable agent", "").strip()
+                agent_store.enable(name)
+                print(f"✅ Agent '{name}' enabled")
+                continue
+
+            if user_input.startswith("disable agent"):
+                name = user_input.replace("disable agent", "").strip()
+                agent_store.disable(name)
+                print(f"⏸️ Agent '{name}' disabled")
+                continue
+
+            if user_input == "run scheduler":
+                scheduler.run_once()
+                print("⏱️ Scheduler tick executed")
+                continue
+
+            # -------- SYSTEM CONTROL ROUTING (NO PLANNER) --------
+            if is_system_control_request(user_input):
+                result = handle_system_control(user_input)
+                print(Fore.GREEN + "\n🤖 HERMES:\n" + result)
+                memory.add_session_message("assistant", result)
+                continue
+
+            # -------- NORMAL FLOW --------
             memory.add_session_message("user", user_input)
 
-            # -------- PREFERENCES --------
             detected = detect_preferences(user_input)
             for k, v in detected.items():
                 memory.update_preference(k, v)
 
             metrics = {}
-            
-            # ==================================================
-            # 🔒 STEP 3 — DESIGN → APPROVAL → CODE → APPROVAL
-            # ==================================================
+
+            # -------- CAPABILITY REQUEST --------
             if is_capability_request(user_input):
                 print(Fore.MAGENTA + "\n🧠 Capability request detected.")
 
@@ -198,70 +212,43 @@ def start_chat_session():
                     print(Fore.RED + str(e))
                     continue
 
-                approved_design = approval_prompt(tool_design)
-                if not approved_design:
+                if not approval_prompt(tool_design):
                     print(Fore.RED + "❌ Tool design rejected.")
                     continue
-                
-                with timed("tool_code_generation", metrics):
-                    tool_code = tool_code_generator.generate_code(tool_design)
-                
-                approved_code = code_approval_prompt(tool_code)
-                if not approved_code:
+
+                tool_code = tool_code_generator.generate_code(tool_design)
+                if not code_approval_prompt(tool_code):
                     print(Fore.RED + "❌ Tool code rejected.")
                     continue
-                # 🔒 SAFE REGISTRATION (NOT EXECUTABLE)
+
                 tool_registry.register_generated_tool(
                     name=tool_design["tool_name"],
-                    function=None  # code not loaded yet
+                    function=None
                 )
 
-
-                memory.store_long_term(
-                    "decision",
-                    f"Generated tool approved (inactive): {tool_design['tool_name']}"
+                # 🔥 REGISTER BACKGROUND AGENT (DISABLED)
+                agent = ScheduledAgent(
+                    name=tool_design["tool_name"],
+                    tool_name=tool_design["tool_name"],
+                    schedule="daily",
+                    permissions=["default"],
+                    enabled=False
                 )
-                memory.store_long_term(
-                    "generated_tool_code",
-                    f"Tool: {tool_design['tool_name']}\n\n{tool_code}"
-                )
+                agent_store.register(agent)
 
-
-
-                print(Fore.GREEN + "✅ Tool registered (inactive). Execution disabled.")
-
-                print(Fore.CYAN + "\n⏱️ Performance:")
-                for k, v in metrics.items():
-                    print(f"  {k}: {v:.2f}s")
-
+                print(Fore.GREEN + f"✅ Agent '{agent.name}' registered (disabled).")
+                print("👉 Use: enable agent", agent.name)
                 continue
-            # ==================================================
-                
-                
-                
 
-                
-            # ==================================================
-
-            # -------- PLANNING --------
-            with timed("planning", metrics):
-                raw_plan = planner.create_plan(user_input)
-
-            with timed("critic", metrics):
-                plan = critic.review_plan(raw_plan)
+            # -------- PLAN & EXECUTE --------
+            raw_plan = planner.create_plan(user_input)
+            plan = critic.review_plan(raw_plan)
 
             print(Fore.BLUE + "\n🧠 FINAL PLAN:")
             print(json.dumps(plan, indent=2))
 
-            # -------- EXECUTION --------
-            with timed("execution", metrics):
-                final_answer = executor.execute_plan(plan)
-
+            final_answer = executor.execute_plan(plan)
             print(Fore.GREEN + "\n🤖 HERMES:\n" + final_answer)
-
-            print(Fore.CYAN + "\n⏱️ Performance:")
-            for k, v in metrics.items():
-                print(f"  {k}: {v:.2f}s")
 
             memory.add_session_message("assistant", final_answer)
 
