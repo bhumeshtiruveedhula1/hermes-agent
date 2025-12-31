@@ -12,12 +12,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 #     # ... (Keep this commented out) ...
 #     pass
 
-# --- 2. MANAGER (Hermes) - ACTIVE & UNCHAINED ---
-print("   (Config: Hermes 3 Manager is ready...)")
-# Increased temperature to 0.3 so it writes better essays/code
+# agents.py
+from langchain_ollama import ChatOllama
+
+print("   (Config: Qwen 2.5 Manager is ready...)")
+
 manager_llm = ChatOllama(
-    model="hermes3", 
-    temperature=0.3, 
-    num_ctx=4096, 
+    model="qwen2.5:7b-instruct-q8_0",
+    temperature=0.2,
+    num_ctx=8192,
     keep_alive="-1m"
 )
+
