@@ -38,6 +38,16 @@ init(autoreset=True)
 
 # ---------------- STORES ----------------
 agent_store = AgentStore()
+# ---------------- FOLDER MONITOR AGENT (Phase 2.4) ----------------
+if not agent_store.get("folder_monitor"):
+    agent_store.register(ScheduledAgent(
+        name="folder_monitor",
+        tool_name="fs_list",
+        schedule="interval:1",
+        permissions=["default"],
+        enabled=False,
+        metadata={"path": "/documents"}
+    ))
 permission_store = PermissionStore()
 credential_vault = CredentialVault()
 
@@ -67,6 +77,8 @@ User Preferences:
 - Writing style: {preferences['writing_style']}
 - Coding style: {preferences['coding_style']}
 - Verbosity: {preferences['verbosity']}
+
+/no_think
 """
 
 # ---------------- AGENTS ----------------

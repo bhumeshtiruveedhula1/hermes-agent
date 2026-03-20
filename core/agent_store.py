@@ -7,7 +7,6 @@ from datetime import datetime
 
 from core.scheduler.scheduled_agent import ScheduledAgent
 
-
 AGENT_STORE_PATH = Path("memory/agents.json")
 
 
@@ -15,8 +14,6 @@ class AgentStore:
     def __init__(self):
         self._agents: List[ScheduledAgent] = []
         self._load()
-
-    # ---------------- PERSISTENCE ----------------
 
     def _load(self):
         if not AGENT_STORE_PATH.exists():
@@ -38,6 +35,7 @@ class AgentStore:
                     last_run_at=datetime.fromisoformat(a["last_run_at"])
                     if a["last_run_at"]
                     else None,
+                    metadata=a.get("metadata", {}),
                 )
             )
 
@@ -58,6 +56,7 @@ class AgentStore:
                         "last_run_at": a.last_run_at.isoformat()
                         if a.last_run_at
                         else None,
+                        "metadata": a.metadata,
                     }
                     for a in self._agents
                 ],
@@ -65,12 +64,9 @@ class AgentStore:
                 indent=2,
             )
 
-    # ---------------- API ----------------
-
     def register(self, agent: ScheduledAgent):
         if self.get(agent.name):
             raise ValueError(f"Agent '{agent.name}' already exists")
-
         self._agents.append(agent)
         self._save()
 
