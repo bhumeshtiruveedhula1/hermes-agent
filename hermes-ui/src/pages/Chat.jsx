@@ -36,7 +36,16 @@ export default function Chat() {
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg ${m.role}`}>
             <div className="chat-who">{m.role === "you" ? "You" : "Hermes"}</div>
-            <div className="chat-text">{m.text}</div>
+            <div className="chat-text">
+              {m.text && m.text.startsWith("[SCREENSHOT_B64]")
+                ? <img
+                    src={`data:image/png;base64,${m.text.replace("[SCREENSHOT_B64]","")}`}
+                    style={{maxWidth:"100%", border:"1px solid var(--border)", marginTop:8}}
+                    alt="Browser screenshot"
+                  />
+                : m.text
+              }
+            </div>
             {m.plan && m.plan.steps?.length > 0 && (
               <div className="chat-plan">
                 {m.plan.steps.map((s, j) => (

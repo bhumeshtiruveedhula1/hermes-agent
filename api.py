@@ -224,3 +224,38 @@ def get_status():
         "agents_enabled": len([a for a in agent_store.list_all() if a.enabled]),
         "ts": datetime.utcnow().isoformat(),
     }
+# ── Browser direct control endpoints ─────────────────────────────────
+
+class BrowserNavRequest(BaseModel):
+    url: str
+
+@app.post("/api/browser/screenshot")
+async def api_browser_screenshot():
+    from core.browser.session import BrowserSession
+    session = BrowserSession.get()
+    result = session.execute(action="screenshot")
+    if result.startswith("[BLOCKED]") or result.startswith("[ERROR]"):
+        return {"error": result}
+    return {"screenshot": result}
+
+@app.post("/api/browser/navigate")
+async def api_browser_navigate(req: BrowserNavRequest):
+    from core.browser.session import BrowserSession
+    session = BrowserSession.get()
+    result = session.execute(action="navigate", target=req.url)
+    await broadcast({"type": "browser_navigate", "url": req.url})
+    return {"result": result}
+
+@app.post("/api/browser/read")
+async def api_browser_read():
+    from core.browser.session import BrowserSession
+    session = BrowserSession.get()
+    result = session.execute(action="get_text")
+    return {"text": result}
+
+@app.post("/api/browser/close")
+async def api_browser_close():
+    from core.browser.session import BrowserSession
+    session = BrowserSession.get()
+    result = session.execute(action="close")
+    return {"result": result}
