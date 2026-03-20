@@ -6,22 +6,31 @@ from core.filesystem.adapter_local import LocalFilesystemAdapter
 from core.audit.audit_event import AuditEvent
 from core.audit.audit_logger import AuditLogger
 
+
 class FilesystemCapability:
     def __init__(self):
         self.adapter = LocalFilesystemAdapter()
         self.audit = AuditLogger()
 
-    def execute(self, *, action: str, path: str, user_id: str, agent: str):
+    def execute(self, *, action: str, path: str, user_id: str, agent: str, content: str = ""):
         try:
             FilesystemValidator.validate_path(path)
             physical_path = SandboxResolver.resolve(user_id, path)
 
             if action == "list":
                 result = self.adapter.list(physical_path)
+
             elif action == "read":
                 result = self.adapter.read(physical_path)
+
+            elif action == "write":
+                result = self.adapter.write(physical_path, content)
+
+            elif action == "delete":
+                result = self.adapter.delete(physical_path)
+
             else:
-                raise ValueError("Unsupported filesystem action")
+                raise ValueError(f"Unsupported action: {action}")
 
             self.audit.log(AuditEvent(
                 phase="filesystem",

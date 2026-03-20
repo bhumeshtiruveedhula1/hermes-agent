@@ -4,20 +4,11 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from core.audit.audit_logger import AuditLogger
 from core.audit.audit_event import AuditEvent
 
-FS_TOOLS = {"fs_list", "fs_read"}
+FS_TOOLS = {"fs_list", "fs_read", "fs_write", "fs_delete"}
+FS_WRITE_TOOLS = {"fs_write", "fs_delete"}  # require approval
 
 
 class SecureExecutor:
-    """
-    Governs tool execution with:
-    - approval checks
-    - permission checks
-    - credential injection
-    - sandbox enforcement
-
-    This class MUST be strict.
-    """
-
     def __init__(
         self,
         llm,
@@ -25,7 +16,7 @@ class SecureExecutor:
         permission_store,
         credential_vault,
         system_prompt: str,
-        execution_enabled: bool = False  # 🔒 default OFF
+        execution_enabled: bool = False
     ):
         self.llm = llm
         self.tool_registry = tool_registry
@@ -57,10 +48,9 @@ class SecureExecutor:
                 results.append(response.content)
                 continue
 
-            # ---------------- FILESYSTEM TOOLS (skip registry checks) ----------------
+            # ---------------- FILESYSTEM TOOLS ----------------
             if tool_name in FS_TOOLS:
 
-                # Still enforce execution gate
                 if not self.execution_enabled:
                     self.audit.log(AuditEvent(
                         phase="filesystem",
@@ -72,22 +62,54 @@ class SecureExecutor:
                     results.append("[BLOCKED] Execution disabled by system")
                     continue
 
+                # Write/delete require human approval
+                if tool_name in FS_WRITE_TOOLS:
+                    from core.filesystem.write_approval import write_approval_prompt
+                    import re
+
+                    path_match = re.search(r'(/[^\s]*)', description)
+                    clean_path = path_match.group(1) if path_match else description
+
+                    action = "write" if tool_name == "fs_write" else "delete"
+                    content = step.get("content", "")
+
+                    approved = write_approval_prompt(action, clean_path, content)
+
+                    if not approved:
+                        self.audit.log(AuditEvent(
+                            phase="filesystem",
+                            action=action,
+                            tool_name=tool_name,
+                            decision="blocked",
+                            reason="user_rejected",
+                            metadata={"path": clean_path}
+                        ))
+                        results.append(f"[REJECTED] User denied {action} on {clean_path}")
+                        continue
+
                 try:
                     from core.filesystem.capability import FilesystemCapability
                     import re
                     fs = FilesystemCapability()
-                    action = "list" if tool_name == "fs_list" else "read"
 
-                    # Extract virtual path from description
-                    # Planner sometimes sends "List files in /documents/" instead of just "/documents/"
+                    action_map = {
+                        "fs_list": "list",
+                        "fs_read": "read",
+                        "fs_write": "write",
+                        "fs_delete": "delete"
+                    }
+                    action = action_map[tool_name]
+
                     path_match = re.search(r'(/[^\s]*)', description)
                     clean_path = path_match.group(1) if path_match else description
+                    content = step.get("content", "")
 
                     result = fs.execute(
                         action=action,
                         path=clean_path,
                         user_id="user_1",
-                        agent="hermes"
+                        agent="hermes",
+                        content=content
                     )
                     results.append(str(result))
 
@@ -101,9 +123,9 @@ class SecureExecutor:
                         reason=str(e)
                     ))
 
-                continue  # done with this step
+                continue
 
-            # ---------------- TOOL EXISTS (standard tools) ----------------
+            # ---------------- TOOL EXISTS ----------------
             if not self.tool_registry.get(tool_name):
                 self.audit.log(AuditEvent(
                     phase="execution",
@@ -156,7 +178,7 @@ class SecureExecutor:
                     results.append(f"[BLOCKED] Missing credentials for tool: {tool_name}")
                     continue
 
-            # ================== 🔒 ABSOLUTE EXECUTION GATE ==================
+            # ================== 🔒 EXECUTION GATE ==================
             if not self.execution_enabled:
                 self.audit.log(AuditEvent(
                     phase="execution",
@@ -167,7 +189,6 @@ class SecureExecutor:
                 ))
                 results.append("[BLOCKED] Execution disabled by system")
                 continue
-            # =================================================================
 
             # ---------------- REAL TOOL EXECUTION ----------------
             try:
@@ -203,5 +224,4 @@ class SecureExecutor:
                     reason=str(e)
                 ))
 
-        # 🔒 ABSOLUTE CONTRACT: ALWAYS RETURN STRING
         return "\n\n".join(results)

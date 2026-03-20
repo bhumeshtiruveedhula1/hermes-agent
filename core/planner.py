@@ -31,10 +31,15 @@ AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - speak_out_loud    → to speak text aloud
 - fs_list           → EXACT NAME: fs_list — list files in a sandbox directory
 - fs_read           → EXACT NAME: fs_read — read a file from the sandbox
+- fs_write  → EXACT NAME: fs_write — write content to a sandbox file (path in description, content in step)
+- fs_delete → EXACT NAME: fs_delete — delete a file from sandbox (path in description)
 
 FILESYSTEM RULES:
 - Use EXACTLY "fs_list" to list a directory. NOT "list_files", NOT "read_file", NOT "fs_list_dir".
 - Use EXACTLY "fs_read" to read a file. NOT "read_file", NOT "file_read", NOT "fs_read_file".
+- "read", "open", "show", "display", "get contents of" a file → ALWAYS use fs_read.
+- "list", "show files in", "what's in" a directory → ALWAYS use fs_list.
+- NEVER return empty steps for filesystem requests. Always map to fs_list or fs_read. 
 - For fs_list and fs_read, put the virtual path in "description".
 - Virtual paths look like: /documents/ or /documents/file.txt
 - NEVER use system paths like C:\\ or /etc/ or ~/.ssh/
@@ -76,13 +81,8 @@ Output JSON ONLY. No explanations. No markdown. No code blocks.
         plan = json.loads(raw)
 
         allowed_tools = {
-            "search_web",
-            "check_inbox",
-            "draft_reply",
-            "speak_out_loud",
-            "fs_list",
-            "fs_read",
-            None
+        "search_web", "check_inbox", "draft_reply", "speak_out_loud",
+        "fs_list", "fs_read", "fs_write", "fs_delete", None
         }
 
         for step in plan.get("steps", []):
