@@ -147,13 +147,16 @@ class CalendarCapability:
         if not start:
             return "[ERROR] Start time required."
 
+        # Clean up date string
+        start = start.strip().rstrip('Z')
+        
         # Default end = 1 hour after start
         if not end:
             try:
-                start_dt = datetime.fromisoformat(start.replace("Z", ""))
+                start_dt = datetime.fromisoformat(start)
                 end_dt = start_dt + timedelta(hours=1)
                 end = end_dt.isoformat()
-            except:
+            except Exception as e:
                 end = start
 
         event = {

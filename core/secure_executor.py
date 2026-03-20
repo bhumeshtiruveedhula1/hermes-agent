@@ -220,14 +220,24 @@ class SecureExecutor:
                         result = cal.execute(action="search", query=description)
                     elif tool_name == "calendar_create":
                         import re
-                        title_match = re.search(r'title=([^|]+)', description)
-                        start_match = re.search(r'start=([^|]+)', description)
-                        end_match = re.search(r'end=([^|]+)', description)
+                        # Parse title — stop at "start=" or end of string
+                        title_match = re.search(r'title=(.+?)(?:\s+start=|$)', description)
+                        # Parse start — stop at "end=" or whitespace boundary
+                        start_match = re.search(r'start=([\d\-T:]+)', description)
+                        # Parse end
+                        end_match = re.search(r'end=([\d\-T:]+)', description)
+
+                        title = title_match.group(1).strip() if title_match else ""
+                        start = start_match.group(1).strip() if start_match else ""
+                        end = end_match.group(1).strip() if end_match else ""
+
+                        print(f"[CAL DEBUG] title={title} start={start} end={end}")
+
                         result = cal.execute(
                             action="create",
-                            title=title_match.group(1).strip() if title_match else description,
-                            start=start_match.group(1).strip() if start_match else "",
-                            end=end_match.group(1).strip() if end_match else "",
+                            title=title,
+                            start=start,
+                            end=end,
                         )
 
                     results.append(str(result))

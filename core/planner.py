@@ -90,6 +90,15 @@ GMAIL RULES:
 - Use gmail_send to send — format: "to=email subject=Subject body=Body"
 - NEVER set tool=null for email requests. ALWAYS map to a gmail tool.
 
+CALENDAR RULES:
+- Today's date is 2026-03-21. ALWAYS use 2026 or later for event dates. NEVER use 2023, 2024, or 2025.
+- For "tomorrow" use 2026-03-22
+- calendar_create format: "title=X start=2026-MM-DDTHH:MM:00 end=2026-MM-DDTHH:MM:00"
+- calendar_today → show today's events
+- calendar_list → show upcoming events
+- calendar_search → search events by keyword
+- NEVER set calendar tools to null
+
 CRITICAL CONSTRAINTS:
 - Use ONLY the tool names listed above. EXACT SPELLING. NO SUBSTITUTIONS.
 - NEVER invent new tool names.
