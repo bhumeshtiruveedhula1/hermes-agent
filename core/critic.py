@@ -5,8 +5,9 @@ from langchain_core.messages import SystemMessage, HumanMessage
 ALLOWED_TOOLS = {
     "search_web", "check_inbox", "draft_reply", "speak_out_loud",
     "fs_list", "fs_read", "fs_write", "fs_delete",
-    "browser_go", "browser_read", "browser_click",
-    "browser_fill", "browser_shot", "browser_scroll", "browser_close",
+    "browser_go", "browser_read", "browser_click", "browser_fill",
+    "browser_shot", "browser_scroll", "browser_close",
+    "gmail_list", "gmail_read", "gmail_send", "gmail_search",
     None
 }
 
@@ -41,6 +42,11 @@ TOOL CORRECTION RULES:
 - "read_file", "file_read" → ALWAYS replace with "fs_read"
 - "list_files", "fs_list_dir" → ALWAYS replace with "fs_list"
 - Any tool NOT in the ALLOWED TOOLS list → set to null
+- "check_inbox", "list_emails", "get_emails" → ALWAYS replace with "gmail_list"
+- "send_email", "email_send" → ALWAYS replace with "gmail_send"
+- "read_email", "email_read" → ALWAYS replace with "gmail_read"
+- "check_inbox", "list_emails", "get_emails", "show_emails" → replace with "gmail_list"
+- ANY step with null tool where description mentions email/inbox → set tool to "gmail_list"
 
 RULES:
 - Output JSON ONLY. No markdown. No code blocks.

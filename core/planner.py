@@ -40,6 +40,13 @@ AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - browser_shot    → EXACT NAME: browser_shot — take a screenshot
 - browser_scroll  → EXACT NAME: browser_scroll — scroll the page
 - browser_close   → EXACT NAME: browser_close — close browser. NOT "close_browser"
+- gmail_list    → EXACT NAME: gmail_list — list unread emails
+- gmail_read    → EXACT NAME: gmail_read — read a specific email (put email ID in description)
+- gmail_send    → EXACT NAME: gmail_send — send an email (format: "to=email@x.com subject=Hello body=message")
+- gmail_search  → EXACT NAME: gmail_search — search emails (put search query in description)
+
+
+
 
 FILESYSTEM RULES:
 - Use EXACTLY "fs_list" to list a directory. NOT "list_files", NOT "read_file", NOT "fs_list_dir".
@@ -67,6 +74,17 @@ BROWSER RULES:
 - NEVER navigate to localhost, 127.0.0.1 or any local network address
 - To close: EXACTLY "browser_close"
 
+GMAIL RULES:
+- Use gmail_list to show unread emails
+- Use gmail_search to find specific emails (e.g. "from:boss@company.com")
+- Use gmail_read to read full email content — put the email ID in description
+- Use gmail_send format: "to=recipient@email.com subject=Subject Line body=Email body text"
+- NEVER send emails without explicit user instruction
+- ANY request about checking, listing, showing, reading inbox → use "gmail_list"
+- Use gmail_search to find specific emails
+- Use gmail_read to read full email — put email ID in description
+- Use gmail_send to send — format: "to=email subject=Subject body=Body"
+- NEVER set tool=null for email requests. ALWAYS map to a gmail tool.
 
 CRITICAL CONSTRAINTS:
 - Use ONLY the tool names listed above. EXACT SPELLING. NO SUBSTITUTIONS.
@@ -77,6 +95,10 @@ CRITICAL CONSTRAINTS:
 - NEVER describe how a human would do it.
 - NEVER mention browsers, apps, or system settings.
 - "browser_open", "browser_navigate", "open_browser" DO NOT EXIST. Use "browser_go" instead.
+- "check my emails", "show emails", "list emails", "unread emails", "inbox" → ALWAYS use "gmail_list"
+- "send email", "email someone", "write email" → ALWAYS use "gmail_send"  
+- "read email", "open email" → ALWAYS use "gmail_read"
+- "search emails", "find emails" → ALWAYS use "gmail_search"
 
 
 SECURITY RULES:
@@ -104,11 +126,12 @@ Output JSON ONLY. No explanations. No markdown. No code blocks.
             raw = raw.strip()
 
         plan = json.loads(raw)
+        print(f"[PLANNER DEBUG] raw output: {raw[:300]}")
 
         allowed_tools = {
         "search_web", "check_inbox", "draft_reply", "speak_out_loud",
         "fs_list", "fs_read", "fs_write", "fs_delete","browser_go", "browser_read", "browser_click",
-"browser_fill", "browser_shot", "browser_scroll", "browser_close", None
+"browser_fill", "browser_shot", "browser_scroll", "browser_close", "gmail_list", "gmail_read", "gmail_send", "gmail_search", None
         }
 
         for step in plan.get("steps", []):

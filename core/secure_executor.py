@@ -8,6 +8,8 @@ from core.auto_tool_builder import AutoToolBuilder
 FS_TOOLS = {"fs_list", "fs_read", "fs_write", "fs_delete"}
 FS_WRITE_TOOLS = {"fs_write", "fs_delete"}
 BROWSER_TOOLS = {"browser_go", "browser_read", "browser_click", "browser_fill", "browser_shot", "browser_scroll", "browser_close"}
+GMAIL_TOOLS = {"gmail_list", "gmail_read", "gmail_send", "gmail_search"}
+
 
 
 class SecureExecutor:
@@ -131,6 +133,57 @@ class SecureExecutor:
                 except Exception as e:
                     results.append(f"[ERROR] Browser error: {e}")
                     self.audit.log(AuditEvent(phase="browser", action="tool_call", tool_name=tool_name, decision="failed", reason=str(e)))
+
+                continue
+            
+            # ---------------- GMAIL TOOLS ----------------
+            if tool_name in GMAIL_TOOLS:
+                if not self.execution_enabled:
+                    self.audit.log(AuditEvent(phase="gmail", action="tool_call", tool_name=tool_name, decision="blocked", reason="execution_disabled"))
+                    results.append("[BLOCKED] Execution disabled by system")
+                    continue
+
+                # Sending email requires approval
+                if tool_name == "gmail_send":
+                    from colorama import Fore
+                    print(Fore.YELLOW + f"\n⚠️  EMAIL SEND APPROVAL")
+                    print(Fore.WHITE + f"   Content: {description[:200]}")
+                    answer = input(Fore.CYAN + "   Approve send? (yes/no): ").strip().lower()
+                    if answer not in ("yes", "y"):
+                        results.append("[REJECTED] Email send rejected by user.")
+                        continue
+
+                try:
+                    from core.integrations.gmail import GmailCapability
+                    import re
+                    gmail = GmailCapability()
+
+                    if tool_name == "gmail_list":
+                        result = gmail.execute(action="list")
+
+                    elif tool_name == "gmail_search":
+                        result = gmail.execute(action="search", query=description)
+
+                    elif tool_name == "gmail_read":
+                        msg_id = description.strip().split()[-1]
+                        result = gmail.execute(action="read", msg_id=msg_id)
+
+                    elif tool_name == "gmail_send":
+                        to_match = re.search(r'to=([^\s]+)', description)
+                        sub_match = re.search(r'subject=(.+?)(?:body=|$)', description)
+                        body_match = re.search(r'body=(.+)', description)
+                        result = gmail.execute(
+                            action="send",
+                            to=to_match.group(1) if to_match else "",
+                            subject=sub_match.group(1).strip() if sub_match else "",
+                            body=body_match.group(1).strip() if body_match else ""
+                        )
+
+                    results.append(str(result))
+
+                except Exception as e:
+                    results.append(f"[ERROR] Gmail error: {e}")
+                    self.audit.log(AuditEvent(phase="gmail", action="tool_call", tool_name=tool_name, decision="failed", reason=str(e)))
 
                 continue
 
