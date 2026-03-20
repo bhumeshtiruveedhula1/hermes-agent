@@ -162,7 +162,13 @@ class SecureExecutor:
                         result = gmail.execute(action="list")
 
                     elif tool_name == "gmail_search":
-                        result = gmail.execute(action="search", query=description)
+                        import re
+                        # Extract search terms — remove common words
+                        query = description
+                        for prefix in ["search emails", "search for emails", "find emails", "search", "find"]:
+                            if query.lower().startswith(prefix):
+                                query = query[len(prefix):].strip()
+                        result = gmail.execute(action="search", query=query)
 
                     elif tool_name == "gmail_read":
                         msg_id = description.strip().split()[-1]

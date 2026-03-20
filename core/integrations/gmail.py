@@ -2,7 +2,7 @@
 
 import os
 import base64
-import json
+import re
 from pathlib import Path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -26,11 +26,6 @@ TOKEN_FILE = Path("memory/gmail_token.json")
 
 
 class GmailCapability:
-    """
-    Gmail integration — read, summarize, send emails.
-    Uses OAuth 2.0. Token is cached after first login.
-    """
-
     def __init__(self):
         self.audit = AuditLogger()
         self._service = None
@@ -40,7 +35,6 @@ class GmailCapability:
             return self._service
 
         creds = None
-
         if TOKEN_FILE.exists():
             creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
 
@@ -51,11 +45,9 @@ class GmailCapability:
                 if not CREDENTIALS_FILE.exists():
                     raise FileNotFoundError(
                         "credentials.json not found. "
-                        "Download it from Google Cloud Console and place it in the project root."
+                        "Download it from Google Cloud Console and place in project root."
                     )
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(CREDENTIALS_FILE), SCOPES
-                )
+                flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
                 creds = flow.run_local_server(port=0)
 
             TOKEN_FILE.parent.mkdir(exist_ok=True)
@@ -71,26 +63,28 @@ class GmailCapability:
 
             if action == "list":
                 return self._list_emails(service, query or "is:unread", max_results=5)
-
             elif action == "read":
                 return self._read_email(service, msg_id)
-
             elif action == "send":
                 return self._send_email(service, to, subject, body)
-
             elif action == "search":
                 return self._list_emails(service, query, max_results=5)
-
             else:
                 raise ValueError(f"Unknown gmail action: {action}")
 
         except Exception as e:
             self.audit.log(AuditEvent(
-                phase="gmail", action=action,
-                tool_name="gmail", decision="blocked",
-                metadata={"reason": str(e)}
+                phase="gmail", action=action, tool_name="gmail",
+                decision="blocked", metadata={"reason": str(e)}
             ))
             return f"[BLOCKED] Gmail error: {str(e)}"
+
+    def _clean_snippet(self, text: str) -> str:
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'&#[0-9]+;', '', text)
+        text = re.sub(r'&[a-z]+;', '', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text[:120]
 
     def _list_emails(self, service, query: str, max_results: int = 5) -> str:
         results = service.users().messages().list(
@@ -109,21 +103,19 @@ class GmailCapability:
             ).execute()
 
             headers = {h["name"]: h["value"] for h in detail["payload"]["headers"]}
-            import re
-            snippet = re.sub(r'<[^>]+>', ' ', detail.get("snippet", ""))[:100]
+            snippet = self._clean_snippet(detail.get("snippet", ""))
 
             output.append(
                 f"ID: {msg['id']}\n"
                 f"From: {headers.get('From', 'unknown')}\n"
                 f"Subject: {headers.get('Subject', 'no subject')}\n"
                 f"Date: {headers.get('Date', '')}\n"
-                f"Preview: {snippet}...\n"
+                f"Preview: {snippet}"
             )
 
             self.audit.log(AuditEvent(
-                phase="gmail", action="list",
-                tool_name="gmail", decision="allowed",
-                metadata={"query": query}
+                phase="gmail", action="list", tool_name="gmail",
+                decision="allowed", metadata={"query": query}
             ))
 
         return "\n---\n".join(output)
@@ -140,33 +132,57 @@ class GmailCapability:
         body = self._extract_body(detail["payload"])
 
         self.audit.log(AuditEvent(
-            phase="gmail", action="read",
-            tool_name="gmail", decision="allowed",
-            metadata={"msg_id": msg_id}
+            phase="gmail", action="read", tool_name="gmail",
+            decision="allowed", metadata={"msg_id": msg_id}
         ))
 
         return (
             f"From: {headers.get('From', 'unknown')}\n"
             f"Subject: {headers.get('Subject', 'no subject')}\n"
             f"Date: {headers.get('Date', '')}\n\n"
-            f"{body[:2000]}"
+            f"{body}"
         )
 
     def _extract_body(self, payload) -> str:
-        import re
+        # Try plain text first — cleanest
         if "parts" in payload:
             for part in payload["parts"]:
                 if part["mimeType"] == "text/plain":
                     data = part["body"].get("data", "")
-                    return base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                    if data:
+                        text = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                        return text[:2000]
+
+            # Recurse into nested parts
+            for part in payload["parts"]:
+                if "parts" in part:
+                    result = self._extract_body(part)
+                    if result and result != "(no body content)":
+                        return result
+
+            # Fall back to HTML parts
+            for part in payload["parts"]:
+                if part["mimeType"] == "text/html":
+                    data = part["body"].get("data", "")
+                    if data:
+                        return self._strip_html(data)
+
+        # Single part email
         body_data = payload.get("body", {}).get("data", "")
         if body_data:
-            text = base64.urlsafe_b64decode(body_data).decode("utf-8", errors="ignore")
-            # Strip HTML tags
-            text = re.sub(r'<[^>]+>', ' ', text)
-            text = re.sub(r'\s+', ' ', text).strip()
-            return text
+            return self._strip_html(body_data)
+
         return "(no body content)"
+
+    def _strip_html(self, b64data: str) -> str:
+        html = base64.urlsafe_b64decode(b64data).decode("utf-8", errors="ignore")
+        text = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
+        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'&#[0-9]+;', '', text)
+        text = re.sub(r'&[a-z]+;', '', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text[:2000]
 
     def _send_email(self, service, to: str, subject: str, body: str) -> str:
         if not to:
@@ -178,15 +194,11 @@ class GmailCapability:
         msg.attach(MIMEText(body, "plain"))
 
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
-
-        service.users().messages().send(
-            userId="me", body={"raw": raw}
-        ).execute()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
 
         self.audit.log(AuditEvent(
-            phase="gmail", action="send",
-            tool_name="gmail", decision="allowed",
-            metadata={"to": to, "subject": subject}
+            phase="gmail", action="send", tool_name="gmail",
+            decision="allowed", metadata={"to": to, "subject": subject}
         ))
 
         return f"Email sent to {to} — Subject: {subject}"
