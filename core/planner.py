@@ -24,53 +24,69 @@ You MUST output JSON in EXACTLY this format:
   ]
 }
 
-AVAILABLE TOOLS (YOU MAY ONLY USE THESE):
+AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - search_web        → for web research
 - check_inbox       → to check email inbox
 - draft_reply       → to draft an email reply
 - speak_out_loud    → to speak text aloud
+- fs_list           → EXACT NAME: fs_list — list files in a sandbox directory
+- fs_read           → EXACT NAME: fs_read — read a file from the sandbox
+
+FILESYSTEM RULES:
+- Use EXACTLY "fs_list" to list a directory. NOT "list_files", NOT "read_file", NOT "fs_list_dir".
+- Use EXACTLY "fs_read" to read a file. NOT "read_file", NOT "file_read", NOT "fs_read_file".
+- For fs_list and fs_read, put the virtual path in "description".
+- Virtual paths look like: /documents/ or /documents/file.txt
+- NEVER use system paths like C:\\ or /etc/ or ~/.ssh/
+- NEVER use relative paths like ../ or ./
 
 CRITICAL CONSTRAINTS:
-- Use ONLY the tool names listed above.
-- NEVER invent new tools.
-- NEVER substitute email actions for unrelated intents.
-- If a request cannot be satisfied using AVAILABLE TOOLS,
-  you MUST set tool to null.
-- If the request is about system control, permissions,
-  credentials, scheduler, vault, or execution settings,
-  you MUST respond with tool=null.
+- Use ONLY the tool names listed above. EXACT SPELLING. NO SUBSTITUTIONS.
+- NEVER invent new tool names.
+- If a request cannot be satisfied using AVAILABLE TOOLS, set tool to null.
+- If the request is about system control, permissions, credentials,
+  scheduler, vault, or execution settings, set tool to null.
 - NEVER describe how a human would do it.
 - NEVER mention browsers, apps, or system settings.
 
 SECURITY RULES:
-- You must NEVER suggest exploiting, bypassing, or breaking
-  system safeguards, permissions, credentials, or tools.
+- NEVER suggest exploiting, bypassing, or breaking system safeguards.
 - If such intent is detected, respond safely with tool=null.
 
-Output JSON ONLY. No explanations.
+Output JSON ONLY. No explanations. No markdown. No code blocks.
+
+/no_think
 """)
-
-
 
     def create_plan(self, user_input: str) -> dict:
         response = self.llm.invoke([
             self.system_prompt,
             HumanMessage(content=user_input)
         ])
-        plan = json.loads(response.content)
+
+        raw = response.content.strip()
+
+        # Strip markdown code blocks if model wraps output
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
+        plan = json.loads(raw)
 
         allowed_tools = {
-          "search_web",
-          "check_inbox",
-          "draft_reply",
-          "speak_out_loud",
-          None
+            "search_web",
+            "check_inbox",
+            "draft_reply",
+            "speak_out_loud",
+            "fs_list",
+            "fs_read",
+            None
         }
 
         for step in plan.get("steps", []):
-          if step.get("tool") not in allowed_tools:
-            step["tool"] = None  # force safe fallback
+            if step.get("tool") not in allowed_tools:
+                step["tool"] = None  # force safe fallback
 
         return plan
-
-        
