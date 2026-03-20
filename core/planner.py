@@ -48,6 +48,13 @@ AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - calendar_today  → EXACT NAME: calendar_today — show today's events
 - calendar_search → EXACT NAME: calendar_search — search calendar events
 - calendar_create → EXACT NAME: calendar_create — create event (format: "title=X start=ISO end=ISO")
+- github_repos       → EXACT NAME: github_repos — list my GitHub repositories
+- github_repo_info   → EXACT NAME: github_repo_info — get info about a repo (put owner/repo in description)
+- github_issues      → EXACT NAME: github_issues — list open issues (put owner/repo in description)
+- github_prs         → EXACT NAME: github_prs — list open pull requests (put owner/repo in description)
+- github_commits     → EXACT NAME: github_commits — list recent commits (put owner/repo in description)
+- github_search      → EXACT NAME: github_search — search GitHub repositories
+- github_create_issue → EXACT NAME: github_create_issue — create an issue (format: "repo=owner/repo title=X body=Y")
 
 
 
@@ -99,6 +106,13 @@ CALENDAR RULES:
 - calendar_search → search events by keyword
 - NEVER set calendar tools to null
 
+GITHUB RULES:
+- Use github_repos to list the user's own repositories
+- For repo-specific actions put owner/repo in description e.g. "bhumeshtiruveedhula1/hermes-agent"
+- Use github_search to find public repos by keyword
+- github_create_issue format: "repo=owner/repo title=Issue title body=Issue body"
+- NEVER create issues without explicit user instruction
+
 CRITICAL CONSTRAINTS:
 - Use ONLY the tool names listed above. EXACT SPELLING. NO SUBSTITUTIONS.
 - NEVER invent new tool names.
@@ -145,7 +159,8 @@ Output JSON ONLY. No explanations. No markdown. No code blocks.
         "search_web", "check_inbox", "draft_reply", "speak_out_loud",
         "fs_list", "fs_read", "fs_write", "fs_delete","browser_go", "browser_read", "browser_click",
         "browser_fill", "browser_shot", "browser_scroll", "browser_close", "gmail_list", "gmail_read", "gmail_send", "gmail_search",
-        "calendar_list", "calendar_today", "calendar_search", "calendar_create",None
+        "calendar_list", "calendar_today", "calendar_search", "calendar_create","github_repos", "github_repo_info", "github_issues", "github_prs",
+"github_commits", "github_search", "github_create_issue",None
         }
 
         for step in plan.get("steps", []):

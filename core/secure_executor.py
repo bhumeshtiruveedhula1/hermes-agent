@@ -10,6 +10,7 @@ FS_WRITE_TOOLS = {"fs_write", "fs_delete"}
 BROWSER_TOOLS = {"browser_go", "browser_read", "browser_click", "browser_fill", "browser_shot", "browser_scroll", "browser_close"}
 GMAIL_TOOLS = {"gmail_list", "gmail_read", "gmail_send", "gmail_search"}
 CALENDAR_TOOLS = {"calendar_list", "calendar_today", "calendar_search", "calendar_create"}
+GITHUB_TOOLS = {"github_repos", "github_issues", "github_prs", "github_commits", "github_create_issue", "github_search", "github_repo_info"}
 
 
 class SecureExecutor:
@@ -197,6 +198,7 @@ class SecureExecutor:
                 if not self.execution_enabled:
                     results.append("[BLOCKED] Execution disabled by system")
                     continue
+            
 
                 # Creating events requires approval
                 if tool_name == "calendar_create":
@@ -244,6 +246,75 @@ class SecureExecutor:
 
                 except Exception as e:
                     results.append(f"[ERROR] Calendar error: {e}")
+
+                continue
+            
+            # ---------------- GITHUB TOOLS ----------------
+            if tool_name in GITHUB_TOOLS:
+                if not self.execution_enabled:
+                    results.append("[BLOCKED] Execution disabled by system")
+                    continue
+
+                # Creating issues requires approval
+                if tool_name == "github_create_issue":
+                    from colorama import Fore
+                    print(Fore.YELLOW + f"\n⚠️  GITHUB ISSUE APPROVAL")
+                    print(Fore.WHITE + f"   {description[:200]}")
+                    answer = input(Fore.CYAN + "   Create this issue? (yes/no): ").strip().lower()
+                    if answer not in ("yes", "y"):
+                        results.append("[REJECTED] Issue creation rejected.")
+                        continue
+
+                try:
+                    import re
+                    from core.integrations.github import GitHubCapability
+                    gh = GitHubCapability()
+
+                    if tool_name == "github_repos":
+                        result = gh.execute(action="list_repos")
+
+                    elif tool_name == "github_repo_info":
+                        repo_match = re.search(r'[\w\-]+/[\w\-\.]+', description)
+                        repo = repo_match.group(0) if repo_match else description.strip()
+                        result = gh.execute(action="repo_info", repo=repo)
+
+                    elif tool_name == "github_issues":
+                        repo_match = re.search(r'[\w\-]+/[\w\-\.]+', description)
+                        repo = repo_match.group(0) if repo_match else description.strip()
+                        result = gh.execute(action="list_issues", repo=repo)
+
+                    elif tool_name == "github_prs":
+                        repo_match = re.search(r'[\w\-]+/[\w\-\.]+', description)
+                        repo = repo_match.group(0) if repo_match else description.strip()
+                        result = gh.execute(action="list_prs", repo=repo)
+
+                    elif tool_name == "github_commits":
+                        repo_match = re.search(r'[\w\-]+/[\w\-\.]+', description)
+                        repo = repo_match.group(0) if repo_match else description.strip()
+                        result = gh.execute(action="list_commits", repo=repo)
+
+                    elif tool_name == "github_search":
+                        result = gh.execute(action="search_repos", query=description)
+
+                    elif tool_name == "github_create_issue":
+                        repo_match = re.search(r'repo=([\w\-]+/[\w\-\.]+)', description)
+                        title_match = re.search(r'title=(.+?)(?:\s+body=|$)', description)
+                        body_match = re.search(r'body=(.+)', description)
+                        result = gh.execute(
+                            action="create_issue",
+                            repo=repo_match.group(1) if repo_match else "",
+                            title=title_match.group(1).strip() if title_match else "",
+                            body=body_match.group(1).strip() if body_match else ""
+                        )
+
+                    results.append(str(result))
+
+                except Exception as e:
+                    results.append(f"[ERROR] GitHub error: {e}")
+                    self.audit.log(AuditEvent(
+                        phase="github", action="tool_call",
+                        tool_name=tool_name, decision="failed", reason=str(e)
+                    ))
 
                 continue
 

@@ -9,6 +9,8 @@ ALLOWED_TOOLS = {
     "browser_shot", "browser_scroll", "browser_close",
     "gmail_list", "gmail_read", "gmail_send", "gmail_search",
     "calendar_list", "calendar_today", "calendar_search", "calendar_create",
+    "github_repos", "github_repo_info", "github_issues", "github_prs",
+    "github_commits", "github_search", "github_create_issue",
     None
 }
 
@@ -51,6 +53,9 @@ TOOL CORRECTION RULES:
 - "calendar_today", "calendar_list", "calendar_search", "calendar_create" are VALID tools — NEVER set them to null
 - "what's on my calendar", "today's events", "upcoming events" → use "calendar_today" or "calendar_list"
 - ANY step with tool="calendar_today" or "calendar_list" or "calendar_search" or "calendar_create" → KEEP IT, never change to null
+- "list_repos", "my_repos", "show_repos" → replace with "github_repos"
+- "list_issues", "show_issues" → replace with "github_issues"
+- github tools are VALID — NEVER set them to null
 
 RULES:
 - NEVER set a tool to null if it is already in the ALLOWED TOOLS list
