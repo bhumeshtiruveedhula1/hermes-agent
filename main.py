@@ -135,7 +135,8 @@ executor = SecureExecutor(
     permission_store=permission_store,
     credential_vault=credential_vault,
     system_prompt=system_prompt,
-    execution_enabled=True
+    execution_enabled=True,
+    safe_mode=True 
 )
 
 # ---------------- SCHEDULER (MANUAL MODE) ----------------
@@ -163,6 +164,15 @@ def start_chat_session():
                 memory.clear_session()
                 print(Fore.YELLOW + "🧠 Session summarized and stored.")
                 break
+            
+            # -------- SAFE MODE TOGGLE --------
+            if user_input.lower() in ("safe mode on", "safe mode off"):
+                mode = user_input.lower() == "safe mode on"
+                executor.safe_mode = mode
+                executor.auto_builder.safe_mode = mode
+                status = "ON 🔒" if mode else "OFF ⚡ (autonomous)"
+                print(Fore.YELLOW + f"🔘 Safe mode: {status}")
+                continue
 
             # ==================================================
             # 🔐 CONTROL PLANE (NO LLM, FIRST)

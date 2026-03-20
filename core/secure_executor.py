@@ -3,6 +3,7 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.audit.audit_logger import AuditLogger
 from core.audit.audit_event import AuditEvent
+from core.auto_tool_builder import AutoToolBuilder
 
 FS_TOOLS = {"fs_list", "fs_read", "fs_write", "fs_delete"}
 FS_WRITE_TOOLS = {"fs_write", "fs_delete"}
@@ -10,7 +11,16 @@ BROWSER_TOOLS = {"browser_go", "browser_read", "browser_click", "browser_fill", 
 
 
 class SecureExecutor:
-    def __init__(self, llm, tool_registry, permission_store, credential_vault, system_prompt: str, execution_enabled: bool = False):
+    def __init__(
+        self,
+        llm,
+        tool_registry,
+        permission_store,
+        credential_vault,
+        system_prompt: str,
+        execution_enabled: bool = False,
+        safe_mode: bool = True        # ← NEW
+    ):
         self.llm = llm
         self.tool_registry = tool_registry
         self.permission_store = permission_store
@@ -18,7 +28,8 @@ class SecureExecutor:
         self.system_prompt = system_prompt
         self.audit = AuditLogger()
         self.execution_enabled = execution_enabled
-
+        self.safe_mode = safe_mode    # ← NEW
+        self.auto_builder = AutoToolBuilder(llm, tool_registry, safe_mode=safe_mode)  # ← NEW
     def execute_plan(self, plan: dict) -> str:
         results = []
 
@@ -125,8 +136,32 @@ class SecureExecutor:
 
             # ---------------- TOOL EXISTS ----------------
             if not self.tool_registry.get(tool_name):
-                self.audit.log(AuditEvent(phase="execution", action="tool_call", tool_name=tool_name, decision="blocked", reason="unknown_tool"))
-                results.append(f"[BLOCKED] Unknown tool: {tool_name}")
+                # Try auto-building before giving up
+                built = self.auto_builder.attempt(tool_name, description)
+
+                if built:
+                    # Tool was built and registered — execute via LLM reasoning
+                    response = self.llm.invoke([
+                        SystemMessage(content=self.system_prompt),
+                        HumanMessage(content=f"Execute this task using tool '{tool_name}': {description}")
+                    ])
+                    self.audit.log(AuditEvent(
+                        phase="auto_build",
+                        action="tool_execution",
+                        tool_name=tool_name,
+                        decision="executed",
+                        metadata={"description": description[:120]}
+                    ))
+                    results.append(f"[AUTO-TOOL: {tool_name}]\n{response.content}")
+                else:
+                    self.audit.log(AuditEvent(
+                        phase="execution",
+                        action="tool_call",
+                        tool_name=tool_name,
+                        decision="blocked",
+                        reason="unknown_tool"
+                    ))
+                    results.append(f"[BLOCKED] Unknown tool: {tool_name}")
                 continue
 
             # ---------------- TOOL APPROVED ----------------

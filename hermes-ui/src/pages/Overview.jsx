@@ -1,13 +1,81 @@
 /* hermes-ui/src/pages/Overview.jsx */
+import { useState, useEffect } from "react"
+import axios from "axios"
+
+function SafeModeToggle() {
+  const [safeMode, setSafeMode] = useState(true)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    axios.get("http://localhost:8000/api/settings")
+      .then(r => setSafeMode(r.data.safe_mode))
+      .catch(() => {})
+  }, [])
+
+  const toggle = async () => {
+    setLoading(true)
+    const newMode = !safeMode
+    await axios.post("http://localhost:8000/api/settings/safemode", { enabled: newMode })
+    setSafeMode(newMode)
+    setLoading(false)
+  }
+
+  return (
+    <div style={{marginTop: 32}}>
+      <div className="section-label">Auto-Tool Builder</div>
+      <div style={{
+        background:"var(--black)", border:"1px solid var(--border2)",
+        padding:"20px 24px", display:"flex", alignItems:"center", justifyContent:"space-between"
+      }}>
+        <div>
+          <div style={{fontFamily:"Space Mono,monospace", fontSize:12, marginBottom:6}}>
+            {safeMode ? "🔒 SAFE MODE" : "⚡ AUTO MODE"}
+          </div>
+          <div style={{fontFamily:"Space Mono,monospace", fontSize:10, color:"var(--dim2)"}}>
+            {safeMode
+              ? "Unknown tools require your approval before running"
+              : "Unknown tools are auto-built and run without approval"}
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={loading}
+          style={{
+            padding:"10px 24px",
+            background: safeMode ? "transparent" : "var(--accent)",
+            border: safeMode ? "1px solid var(--border2)" : "none",
+            color: safeMode ? "var(--dim2)" : "var(--black)",
+            fontFamily:"Space Mono,monospace", fontSize:10,
+            letterSpacing:2, textTransform:"uppercase", cursor:"pointer",
+            transition:"all .2s"
+          }}
+        >
+          {loading ? "..." : safeMode ? "Switch to Auto" : "Switch to Safe"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Overview({ status, liveEvents }) {
-  const capabilities = ["fs_list","fs_read","fs_write","fs_delete","search_web","check_inbox"]
+  const capabilities = [
+    "fs_list","fs_read","fs_write","fs_delete",
+    "search_web","check_inbox",
+    "browser_go","browser_read","browser_click",
+    "browser_fill","browser_shot","browser_scroll"
+  ]
+
   const roadmap = [
-    ["Phase 0 — Core Runtime",      "done"],
-    ["Phase 1 — Scheduler",         "done"],
-    ["Phase 2 — Filesystem Read",   "done"],
-    ["Phase 3 — Filesystem Write",  "done"],
-    ["Phase 4 — Dashboard UI",      "done"],
-    ["Phase 5 — Browser & APIs",    "pending"],
+    ["Phase 0 — Core Runtime",         "done"],
+    ["Phase 1 — Scheduler",            "done"],
+    ["Phase 2 — Filesystem Read",      "done"],
+    ["Phase 3 — Filesystem Write",     "done"],
+    ["Phase 4 — Dashboard UI",         "done"],
+    ["Phase 5.1 — Browser Engine",     "done"],
+    ["Phase 5.2 — Browser Session",    "done"],
+    ["Phase 5.3 — Live Screenshots",   "done"],
+    ["Phase 5.4 — Auto Tool Builder",  "done"],
+    ["Phase 5.5 — GitHub & README",    "pending"],
   ]
 
   return (
@@ -25,8 +93,8 @@ export default function Overview({ status, liveEvents }) {
         </div>
         <div className="stat-cell">
           <div className="stat-label">Phase</div>
-          <div className="stat-value">{status?.phase ?? "—"}</div>
-          <div className="stat-sub">filesystem write/delete</div>
+          <div className="stat-value accent">5.4</div>
+          <div className="stat-sub">auto tool builder</div>
         </div>
         <div className="stat-cell">
           <div className="stat-label">Security</div>
@@ -50,7 +118,9 @@ export default function Overview({ status, liveEvents }) {
           {roadmap.map(([label, state]) => (
             <div className="col-row" key={label}>
               <span className="col-row-key">{label}</span>
-              <span className={`col-row-val ${state}`}>{state === "done" ? "DONE" : "PENDING"}</span>
+              <span className={`col-row-val ${state}`}>
+                {state === "done" ? "DONE" : "PENDING"}
+              </span>
             </div>
           ))}
         </div>
@@ -59,7 +129,7 @@ export default function Overview({ status, liveEvents }) {
       {liveEvents.length > 0 && (
         <>
           <div className="section-label">Live Stream</div>
-          <div className="audit-wrap" style={{maxHeight: 200, overflowY:"auto"}}>
+          <div className="audit-wrap" style={{maxHeight:200, overflowY:"auto"}}>
             <div className="audit-head">
               <div className="audit-cell">Type</div>
               <div className="audit-cell">Detail</div>
@@ -79,6 +149,8 @@ export default function Overview({ status, liveEvents }) {
           </div>
         </>
       )}
+
+      <SafeModeToggle />
     </div>
   )
 }

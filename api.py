@@ -55,7 +55,8 @@ executor = SecureExecutor(
     permission_store=permission_store,
     credential_vault=credential_vault,
     system_prompt=system_prompt,
-    execution_enabled=True
+    execution_enabled=True,
+    safe_mode=True
 )
 
 planner   = PlannerAgent(hermes_agents.manager_llm)
@@ -259,3 +260,18 @@ async def api_browser_close():
     session = BrowserSession.get()
     result = session.execute(action="close")
     return {"result": result}
+
+
+class SafeModeRequest(BaseModel):
+    enabled: bool
+
+@app.post("/api/settings/safemode")
+async def set_safe_mode(req: SafeModeRequest):
+    executor.safe_mode = req.enabled
+    executor.auto_builder.safe_mode = req.enabled
+    await broadcast({"type": "safe_mode_changed", "enabled": req.enabled})
+    return {"safe_mode": req.enabled}
+
+@app.get("/api/settings")
+def get_settings():
+    return {"safe_mode": executor.safe_mode}
