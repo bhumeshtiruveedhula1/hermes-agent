@@ -44,6 +44,10 @@ AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - gmail_read    → EXACT NAME: gmail_read — read a specific email (put email ID in description)
 - gmail_send    → EXACT NAME: gmail_send — send an email (format: "to=email@x.com subject=Hello body=message")
 - gmail_search  → EXACT NAME: gmail_search — search emails (put search query in description)
+- calendar_list   → EXACT NAME: calendar_list — list upcoming calendar events
+- calendar_today  → EXACT NAME: calendar_today — show today's events
+- calendar_search → EXACT NAME: calendar_search — search calendar events
+- calendar_create → EXACT NAME: calendar_create — create event (format: "title=X start=ISO end=ISO")
 
 
 
@@ -131,7 +135,8 @@ Output JSON ONLY. No explanations. No markdown. No code blocks.
         allowed_tools = {
         "search_web", "check_inbox", "draft_reply", "speak_out_loud",
         "fs_list", "fs_read", "fs_write", "fs_delete","browser_go", "browser_read", "browser_click",
-"browser_fill", "browser_shot", "browser_scroll", "browser_close", "gmail_list", "gmail_read", "gmail_send", "gmail_search", None
+        "browser_fill", "browser_shot", "browser_scroll", "browser_close", "gmail_list", "gmail_read", "gmail_send", "gmail_search",
+        "calendar_list", "calendar_today", "calendar_search", "calendar_create",None
         }
 
         for step in plan.get("steps", []):

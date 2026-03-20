@@ -8,6 +8,7 @@ ALLOWED_TOOLS = {
     "browser_go", "browser_read", "browser_click", "browser_fill",
     "browser_shot", "browser_scroll", "browser_close",
     "gmail_list", "gmail_read", "gmail_send", "gmail_search",
+    "calendar_list", "calendar_today", "calendar_search", "calendar_create",
     None
 }
 
@@ -47,8 +48,13 @@ TOOL CORRECTION RULES:
 - "read_email", "email_read" → ALWAYS replace with "gmail_read"
 - "check_inbox", "list_emails", "get_emails", "show_emails" → replace with "gmail_list"
 - ANY step with null tool where description mentions email/inbox → set tool to "gmail_list"
+- "calendar_today", "calendar_list", "calendar_search", "calendar_create" are VALID tools — NEVER set them to null
+- "what's on my calendar", "today's events", "upcoming events" → use "calendar_today" or "calendar_list"
+- ANY step with tool="calendar_today" or "calendar_list" or "calendar_search" or "calendar_create" → KEEP IT, never change to null
 
 RULES:
+- NEVER set a tool to null if it is already in the ALLOWED TOOLS list
+- If a tool name is valid (in the allowed list), ALWAYS keep it as-is
 - Output JSON ONLY. No markdown. No code blocks.
 - Remove extra fields.
 - Add missing 'tool' fields (use null).
@@ -72,6 +78,7 @@ RULES:
             raw = raw.strip()
 
         reviewed = json.loads(raw)
+        print(f"[CRITIC DEBUG] output: {raw[:300]}")
 
         # Hard safety filter — critic cannot override allowed tools
         for step in reviewed.get("steps", []):

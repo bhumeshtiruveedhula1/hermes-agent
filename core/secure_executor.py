@@ -9,7 +9,7 @@ FS_TOOLS = {"fs_list", "fs_read", "fs_write", "fs_delete"}
 FS_WRITE_TOOLS = {"fs_write", "fs_delete"}
 BROWSER_TOOLS = {"browser_go", "browser_read", "browser_click", "browser_fill", "browser_shot", "browser_scroll", "browser_close"}
 GMAIL_TOOLS = {"gmail_list", "gmail_read", "gmail_send", "gmail_search"}
-
+CALENDAR_TOOLS = {"calendar_list", "calendar_today", "calendar_search", "calendar_create"}
 
 
 class SecureExecutor:
@@ -190,6 +190,50 @@ class SecureExecutor:
                 except Exception as e:
                     results.append(f"[ERROR] Gmail error: {e}")
                     self.audit.log(AuditEvent(phase="gmail", action="tool_call", tool_name=tool_name, decision="failed", reason=str(e)))
+
+                continue
+            # ---------------- CALENDAR TOOLS ----------------
+            if tool_name in CALENDAR_TOOLS:
+                if not self.execution_enabled:
+                    results.append("[BLOCKED] Execution disabled by system")
+                    continue
+
+                # Creating events requires approval
+                if tool_name == "calendar_create":
+                    from colorama import Fore
+                    print(Fore.YELLOW + f"\n⚠️  CALENDAR CREATE APPROVAL")
+                    print(Fore.WHITE + f"   Event: {description[:200]}")
+                    answer = input(Fore.CYAN + "   Create this event? (yes/no): ").strip().lower()
+                    if answer not in ("yes", "y"):
+                        results.append("[REJECTED] Calendar event creation rejected.")
+                        continue
+
+                try:
+                    from core.integrations.calendar import CalendarCapability
+                    cal = CalendarCapability()
+
+                    if tool_name == "calendar_list":
+                        result = cal.execute(action="list")
+                    elif tool_name == "calendar_today":
+                        result = cal.execute(action="today")
+                    elif tool_name == "calendar_search":
+                        result = cal.execute(action="search", query=description)
+                    elif tool_name == "calendar_create":
+                        import re
+                        title_match = re.search(r'title=([^|]+)', description)
+                        start_match = re.search(r'start=([^|]+)', description)
+                        end_match = re.search(r'end=([^|]+)', description)
+                        result = cal.execute(
+                            action="create",
+                            title=title_match.group(1).strip() if title_match else description,
+                            start=start_match.group(1).strip() if start_match else "",
+                            end=end_match.group(1).strip() if end_match else "",
+                        )
+
+                    results.append(str(result))
+
+                except Exception as e:
+                    results.append(f"[ERROR] Calendar error: {e}")
 
                 continue
 
