@@ -75,6 +75,7 @@ class SecureExecutor:
                 continue
 
             # ---------------- BROWSER TOOLS ----------------
+            # ---------------- BROWSER TOOLS ----------------
             if tool_name in BROWSER_TOOLS:
                 if not self.execution_enabled:
                     self.audit.log(AuditEvent(phase="browser", action="tool_call", tool_name=tool_name, decision="blocked", reason="execution_disabled"))
@@ -82,10 +83,22 @@ class SecureExecutor:
                     continue
 
                 try:
-                    from core.browser.capability import BrowserCapability
-                    browser = BrowserCapability()
+                    import re
+                    from core.browser.session import BrowserSession
+                    browser = BrowserSession.get()
+
+                    # Extract clean URL for browser_go
+                    clean_target = description
+                    if tool_name == "browser_go":
+                        url_match = re.search(r'https?://[^\s]+', description)
+                        if url_match:
+                            clean_target = url_match.group(0)
+                        else:
+                            domain_match = re.search(r'[a-zA-Z0-9-]+\.[a-zA-Z.]{2,}[^\s]*', description)
+                            clean_target = domain_match.group(0) if domain_match else description
+
                     action_map = {
-                        "browser_go":     ("navigate",   description, ""),
+                        "browser_go":     ("navigate",   clean_target, ""),
                         "browser_read":   ("get_text",   "", ""),
                         "browser_click":  ("click",      description, ""),
                         "browser_shot":   ("screenshot", "", ""),
@@ -95,11 +108,15 @@ class SecureExecutor:
                                           description.split("=")[0] if "=" in description else description,
                                           description.split("=", 1)[1] if "=" in description else ""),
                     }
+
                     action, target, value = action_map[tool_name]
                     result = browser.execute(action=action, target=target, value=value)
+
                     if tool_name == "browser_shot":
                         result = f"[SCREENSHOT_B64]{result}"
+
                     results.append(str(result))
+
                 except Exception as e:
                     results.append(f"[ERROR] Browser error: {e}")
                     self.audit.log(AuditEvent(phase="browser", action="tool_call", tool_name=tool_name, decision="failed", reason=str(e)))

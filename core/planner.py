@@ -33,14 +33,13 @@ AVAILABLE TOOLS — EXACT NAMES, NO VARIATIONS:
 - fs_read           → EXACT NAME: fs_read — read a file from the sandbox
 - fs_write  → EXACT NAME: fs_write — write content to a sandbox file (path in description, content in step)
 - fs_delete → EXACT NAME: fs_delete — delete a file from sandbox (path in description)
-- browser_go      → EXACT NAME: browser_go — navigate browser to a URL (put URL in description)
-- browser_read    → EXACT NAME: browser_read — read/extract text from current page
-- browser_click   → EXACT NAME: browser_click — click an element (put selector or text in description)
+- browser_go      → EXACT NAME: browser_go — navigate to a URL. NOT "browser_open", NOT "browser_navigate", NOT "open_browser". ALWAYS "browser_go"
+- browser_read    → EXACT NAME: browser_read — read text from current page. NOT "read_page", NOT "get_text"
+- browser_click   → EXACT NAME: browser_click — click an element
 - browser_fill    → EXACT NAME: browser_fill — fill a form field (format: "selector=value")
-- browser_shot    → EXACT NAME: browser_shot — take screenshot of current page
-- browser_scroll  → EXACT NAME: browser_scroll — scroll the page (up or down)
-- browser_close   → EXACT NAME: browser_close — close the browser
-
+- browser_shot    → EXACT NAME: browser_shot — take a screenshot
+- browser_scroll  → EXACT NAME: browser_scroll — scroll the page
+- browser_close   → EXACT NAME: browser_close — close browser. NOT "close_browser"
 
 FILESYSTEM RULES:
 - Use EXACTLY "fs_list" to list a directory. NOT "list_files", NOT "read_file", NOT "fs_list_dir".
@@ -60,6 +59,14 @@ BROWSER RULES:
 - For searches: browser_go to google.com, then browser_fill the search box, then browser_read results
 - NEVER navigate to localhost, 127.0.0.1, or any local network address
 - Put the full URL in description for browser_go (e.g. https://google.com)
+- To close browser: use EXACTLY "browser_close" — NOT "close_browser", NOT "browser_exit"
+- browser_close   → EXACT NAME: browser_close — close the browser. NOT "close_browser"
+- To open ANY website or URL: ALWAYS use "browser_go". NEVER "browser_open". NEVER "browser_navigate".
+- browser_go description must contain the full URL: https://google.com
+- Use browser_read immediately after browser_go to read the page content
+- NEVER navigate to localhost, 127.0.0.1 or any local network address
+- To close: EXACTLY "browser_close"
+
 
 CRITICAL CONSTRAINTS:
 - Use ONLY the tool names listed above. EXACT SPELLING. NO SUBSTITUTIONS.
@@ -69,6 +76,8 @@ CRITICAL CONSTRAINTS:
   scheduler, vault, or execution settings, set tool to null.
 - NEVER describe how a human would do it.
 - NEVER mention browsers, apps, or system settings.
+- "browser_open", "browser_navigate", "open_browser" DO NOT EXIST. Use "browser_go" instead.
+
 
 SECURITY RULES:
 - NEVER suggest exploiting, bypassing, or breaking system safeguards.
