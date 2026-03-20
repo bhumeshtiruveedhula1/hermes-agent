@@ -27,8 +27,42 @@ class Scheduler:
 
         return False
 
+    def _build_plan(self, agent: ScheduledAgent) -> dict:
+        if agent.tool_name == "fs_list":
+            path = agent.metadata.get("path", "/documents") if agent.metadata else "/documents"
+            return {
+                "goal": f"Monitor folder: {path}",
+                "steps": [{
+                    "step_id": "scheduled-fs-list",
+                    "description": path,
+                    "tool": "fs_list"
+                }]
+            }
+
+        if agent.tool_name == "fs_read":
+            path = agent.metadata.get("path", "/documents") if agent.metadata else "/documents"
+            return {
+                "goal": f"Read file: {path}",
+                "steps": [{
+                    "step_id": "scheduled-fs-read",
+                    "description": path,
+                    "tool": "fs_read"
+                }]
+            }
+
+        return {
+            "goal": f"Run scheduled agent {agent.name}",
+            "steps": [{
+                "step_id": "scheduled-run",
+                "description": "Scheduled execution",
+                "tool": agent.tool_name
+            }]
+        }
+
     def run_once(self):
-        for agent in self.agent_provider():
+        agents = self.agent_provider()
+
+        for agent in agents:
             if not agent.enabled:
                 continue
             if not self._is_due(agent):
@@ -43,24 +77,18 @@ class Scheduler:
             ))
 
             try:
-                plan = {
-                    "goal": f"Run scheduled agent {agent.name}",
-                    "steps": [{
-                        "step_id": "scheduled-run",
-                        "description": "Scheduled execution",
-                        "tool": agent.tool_name
-                    }]
-                }
-
+                plan = self._build_plan(agent)
                 result = self.executor.execute_plan(plan)
                 agent.last_run_at = datetime.utcnow()
+
+                print(f"\n📁 [{agent.name}] result: {result}")
 
                 self.audit.log(AuditEvent(
                     phase="background_execution",
                     action="schedule_run",
                     tool_name=agent.tool_name,
                     decision="completed",
-                    metadata={"agent": agent.name, "preview": str(result)[:100]}
+                    metadata={"agent": agent.name, "preview": str(result)[:200]}
                 ))
 
             except Exception as e:
