@@ -56,6 +56,7 @@ TOOL CORRECTION RULES:
 - "list_repos", "my_repos", "show_repos" → replace with "github_repos"
 - "list_issues", "show_issues" → replace with "github_issues"
 - github tools are VALID — NEVER set them to null
+- "github_commits", "github_repos", "github_issues", "github_prs", "github_repo_info", "github_search", "github_create_issue" are VALID — NEVER set to null
 
 RULES:
 - NEVER set a tool to null if it is already in the ALLOWED TOOLS list
