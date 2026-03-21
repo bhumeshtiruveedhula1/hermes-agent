@@ -275,3 +275,33 @@ async def set_safe_mode(req: SafeModeRequest):
 @app.get("/api/settings")
 def get_settings():
     return {"safe_mode": executor.safe_mode}
+
+
+# ── Plugin management endpoints ───────────────────────────────────────
+
+@app.get("/api/plugins")
+def get_plugins():
+    from core.plugin_loader import PluginLoader
+    return {
+        "active": PluginLoader.get_all_plugins(),
+        "pending": PluginLoader.get_pending_plugins()
+    }
+
+@app.post("/api/plugins/{name}/approve")
+async def approve_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success = PluginLoader.approve_plugin(name)
+    await broadcast({"type": "plugin_approved", "name": name})
+    return {"ok": success}
+
+@app.post("/api/plugins/{name}/reject")
+async def reject_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success = PluginLoader.reject_plugin(name)
+    return {"ok": success}
+
+@app.post("/api/plugins/{name}/disable")
+async def disable_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success = PluginLoader.disable_plugin(name)
+    return {"ok": success}

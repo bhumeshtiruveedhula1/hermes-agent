@@ -1,0 +1,31 @@
+{
+  "name": "weather",
+  "version": "1.0",
+  "status": "active",
+  "description": "Weather information — current conditions and forecasts",
+  "auth": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "weather_current",
+      "description": "Get current weather for a city",
+      "planner_hint": "Use when user asks about current weather or temperature for any city. Put city name in description.",
+      "requires_approval": false
+    },
+    {
+      "name": "weather_forecast",
+      "description": "Get 3-day weather forecast for a city",
+      "planner_hint": "Use when user asks about weather forecast or upcoming weather. Put city name in description.",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.weather",
+    "class": "WeatherCapability",
+    "action_map": {
+      "weather_current":  {"action": "current",  "parse": "query"},
+      "weather_forecast": {"action": "forecast", "parse": "query"}
+    }
+  }
+}
