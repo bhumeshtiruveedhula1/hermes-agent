@@ -209,11 +209,19 @@ def read_file(path: str, user_id: str = "user_1"):
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     try:
-        raw_plan = planner.create_plan(req.message)
+        from core.autocorrect import autocorrect
+        corrected_msg, corrections = autocorrect(req.message)
+
+        raw_plan = planner.create_plan(corrected_msg)
         plan     = critic.review_plan(raw_plan)
         result   = executor.execute_plan(plan)
         await broadcast({"type": "chat_result", "message": req.message, "result": result})
-        return {"plan": plan, "result": result}
+        return {
+            "plan": plan,
+            "result": result,
+            "corrections": corrections,
+            "corrected_input": corrected_msg if corrections else None
+        }
     except Exception as e:
         return {"plan": {}, "result": f"[ERROR] {str(e)}"}
 
@@ -366,10 +374,15 @@ async def chat_mission(req: ConvMessageRequest):
     """Chat endpoint that saves to conversation history."""
     try:
         # Save user message
+        # Autocorrect user input
+        from core.autocorrect import autocorrect
+        corrected_msg, corrections = autocorrect(req.message)
+
+        # Save original user message
         conv_store.add_message(req.conv_id, "user", req.message)
 
-        # Run through Hermes
-        raw_plan = planner.create_plan(req.message)
+        # Run through Hermes with corrected input
+        raw_plan = planner.create_plan(corrected_msg)
         plan = critic.review_plan(raw_plan)
         result = executor.execute_plan(plan)
 
@@ -399,7 +412,9 @@ async def chat_mission(req: ConvMessageRequest):
         return {
             "plan": plan,
             "result": result,
-            "tools_used": tools_used
+            "tools_used": tools_used,
+            "corrections": corrections,
+            "corrected_input": corrected_msg if corrections else None
         }
 
     except Exception as e:

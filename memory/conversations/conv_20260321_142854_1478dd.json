@@ -1,0 +1,27 @@
+{
+  "id": "conv_20260321_142854_1478dd",
+  "title": "Checked weather",
+  "created_at": "2026-03-21T14:28:54.894850",
+  "updated_at": "2026-03-21T14:29:10.632683",
+  "messages": [
+    {
+      "role": "user",
+      "text": "whats the weathr in bangalor",
+      "ts": "2026-03-21T14:28:55.024830",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Weather in Bengaluru, India:\nCondition: Overcast\nTemperature: 27.7\u00b0C (feels like 28.8\u00b0C)\nHumidity: 47%\nWind: 4.7 km/h",
+      "ts": "2026-03-21T14:29:10.630820",
+      "tools": [
+        "weather_current"
+      ]
+    }
+  ],
+  "tools_used": [
+    "weather_current"
+  ],
+  "summary": "Used weather_current. Weather in Bengaluru, India:\nCondition: Overcast\nTemperature: 27.7\u00b0C (feels like...",
+  "pinned": false
+}

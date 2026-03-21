@@ -48,9 +48,7 @@ export default function Chat() {
   const [search, setSearch] = useState("")
   const bottomRef = useRef(null)
 
-  useEffect(() => {
-    loadConvList()
-  }, [])
+  useEffect(() => { loadConvList() }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -64,9 +62,7 @@ export default function Chat() {
   const newConversation = async () => {
     const res = await axios.post("http://localhost:8000/api/conversations")
     setActiveConv(res.data)
-    setMessages([
-      { role: "hermes", text: "New mission started. What do you need?" }
-    ])
+    setMessages([{ role: "hermes", text: "New mission started. What do you need?" }])
     loadConvList()
   }
 
@@ -76,9 +72,7 @@ export default function Chat() {
     setActiveConv(conv)
     if (conv.messages && conv.messages.length > 0) {
       setMessages(conv.messages.map(m => ({
-        role: m.role,
-        text: m.text,
-        tools: m.tools || []
+        role: m.role, text: m.text, tools: m.tools || []
       })))
     } else {
       setMessages([{ role: "hermes", text: "Mission resumed. What do you need?" }])
@@ -106,7 +100,6 @@ export default function Chat() {
     if (!val || loading) return
     setInput("")
 
-    // Create conversation if none active
     let conv = activeConv
     if (!conv) {
       const res = await axios.post("http://localhost:8000/api/conversations")
@@ -122,7 +115,15 @@ export default function Chat() {
         conv_id: conv.id,
         message: val
       })
-      const { plan, result, tools_used } = res.data
+      const { plan, result, tools_used, corrections } = res.data
+
+      if (corrections && corrections.length > 0) {
+        setMessages(prev => [...prev, {
+          role: "system",
+          text: `✏️ Autocorrected: ${corrections.join(", ")}`
+        }])
+      }
+
       setMessages(prev => [...prev, {
         role: "hermes", text: result,
         plan, tools: tools_used || []
@@ -148,7 +149,6 @@ export default function Chat() {
         display:"flex", flexDirection:"column",
         background:"var(--black2)"
       }}>
-        {/* New Mission Button */}
         <button
           onClick={newConversation}
           style={{
@@ -162,7 +162,6 @@ export default function Chat() {
           + New Mission
         </button>
 
-        {/* Search */}
         <div style={{padding:"0 12px 8px"}}>
           <input
             style={{
@@ -177,36 +176,38 @@ export default function Chat() {
           />
         </div>
 
-        {/* Conversation List */}
         <div style={{flex:1, overflowY:"auto", scrollbarWidth:"thin", scrollbarColor:"var(--border) transparent"}}>
-
           {pinnedConvs.length > 0 && (
             <>
-              <div style={{
-                padding:"6px 14px", fontFamily:"Space Mono,monospace",
-                fontSize:8, letterSpacing:2, color:"var(--dim)",
-                textTransform:"uppercase"
-              }}>Pinned</div>
-              {pinnedConvs.map(c => <ConvItem key={c.id} conv={c} active={activeConv?.id === c.id} onOpen={openConversation} onDelete={deleteConv} onPin={pinConv} />)}
+              <div style={{padding:"6px 14px", fontFamily:"Space Mono,monospace",
+                fontSize:8, letterSpacing:2, color:"var(--dim)", textTransform:"uppercase"}}>
+                Pinned
+              </div>
+              {pinnedConvs.map(c => (
+                <ConvItem key={c.id} conv={c} active={activeConv?.id === c.id}
+                  onOpen={openConversation} onDelete={deleteConv} onPin={pinConv} />
+              ))}
             </>
           )}
 
           {unpinnedConvs.length > 0 && (
             <>
-              <div style={{
-                padding:"6px 14px", fontFamily:"Space Mono,monospace",
-                fontSize:8, letterSpacing:2, color:"var(--dim)",
-                textTransform:"uppercase", marginTop:4
-              }}>Recent</div>
-              {unpinnedConvs.map(c => <ConvItem key={c.id} conv={c} active={activeConv?.id === c.id} onOpen={openConversation} onDelete={deleteConv} onPin={pinConv} />)}
+              <div style={{padding:"6px 14px", fontFamily:"Space Mono,monospace",
+                fontSize:8, letterSpacing:2, color:"var(--dim)", textTransform:"uppercase", marginTop:4}}>
+                Recent
+              </div>
+              {unpinnedConvs.map(c => (
+                <ConvItem key={c.id} conv={c} active={activeConv?.id === c.id}
+                  onOpen={openConversation} onDelete={deleteConv} onPin={pinConv} />
+              ))}
             </>
           )}
 
           {convList.length === 0 && (
-            <div style={{
-              padding:"20px 14px", fontFamily:"Space Mono,monospace",
-              fontSize:10, color:"var(--dim)"
-            }}>No missions yet.</div>
+            <div style={{padding:"20px 14px", fontFamily:"Space Mono,monospace",
+              fontSize:10, color:"var(--dim)"}}>
+              No missions yet.
+            </div>
           )}
         </div>
       </div>
@@ -214,16 +215,11 @@ export default function Chat() {
       {/* CHAT WINDOW */}
       <div style={{flex:1, display:"flex", flexDirection:"column"}}>
 
-        {/* Mission Header */}
         {activeConv && (
-          <div style={{
-            padding:"10px 18px", borderBottom:"1px solid var(--border)",
-            display:"flex", alignItems:"center", gap:12
-          }}>
-            <div style={{
-              fontFamily:"Space Mono,monospace", fontSize:11,
-              color:"var(--white)", flex:1
-            }}>
+          <div style={{padding:"10px 18px", borderBottom:"1px solid var(--border)",
+            display:"flex", alignItems:"center", gap:12}}>
+            <div style={{fontFamily:"Space Mono,monospace", fontSize:11,
+              color:"var(--white)", flex:1}}>
               {activeConv.title || "New Mission"}
             </div>
             <div style={{display:"flex", flexWrap:"wrap", gap:4}}>
@@ -232,14 +228,13 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Messages */}
-        <div style={{
-          flex:1, overflowY:"auto", display:"flex", flexDirection:"column",
-          scrollbarWidth:"thin", scrollbarColor:"var(--border) transparent"
-        }}>
+        <div style={{flex:1, overflowY:"auto", display:"flex", flexDirection:"column",
+          scrollbarWidth:"thin", scrollbarColor:"var(--border) transparent"}}>
           {messages.map((m, i) => (
-            <div key={i} className={`chat-msg ${m.role === "you" ? "you" : "hermes"}`}>
-              <div className="chat-who">{m.role === "you" ? "You" : "Hermes"}</div>
+            <div key={i} className={`chat-msg ${m.role === "you" ? "you" : m.role === "system" ? "system" : "hermes"}`}>
+              <div className="chat-who">
+                {m.role === "you" ? "You" : m.role === "system" ? "System" : "Hermes"}
+              </div>
               <div className="chat-text">
                 {m.text && m.text.startsWith("[SCREENSHOT_B64]")
                   ? <img
@@ -275,7 +270,6 @@ export default function Chat() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
         <div className="chat-footer">
           <input
             className="chat-input"
@@ -314,15 +308,12 @@ function ConvItem({ conv, active, onOpen, onDelete, onPin }) {
         <div style={{
           fontFamily:"Space Mono,monospace", fontSize:10,
           color: active ? "var(--accent)" : "var(--white)",
-          flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-          paddingRight:8
+          flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", paddingRight:8
         }}>
           {conv.pinned ? "📌 " : ""}{conv.title || "New Mission"}
         </div>
-        <div style={{
-          fontFamily:"Space Mono,monospace", fontSize:8,
-          color:"var(--dim)", flexShrink:0
-        }}>{date}</div>
+        <div style={{fontFamily:"Space Mono,monospace", fontSize:8,
+          color:"var(--dim)", flexShrink:0}}>{date}</div>
       </div>
 
       {conv.tools_used?.length > 0 && (
@@ -337,32 +328,21 @@ function ConvItem({ conv, active, onOpen, onDelete, onPin }) {
       )}
 
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-        <div style={{
-          fontFamily:"Space Mono,monospace", fontSize:9,
-          color:"var(--dim2)", overflow:"hidden", textOverflow:"ellipsis",
-          whiteSpace:"nowrap", flex:1
-        }}>
+        <div style={{fontFamily:"Space Mono,monospace", fontSize:9, color:"var(--dim2)",
+          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>
           {conv.summary || `${conv.message_count || 0} messages`}
         </div>
         <div style={{display:"flex", gap:4, flexShrink:0, marginLeft:8}}>
-          <button
-            onClick={e => onPin(e, conv.id, conv.pinned)}
-            style={{
-              background:"none", border:"none", cursor:"pointer",
-              color:"var(--dim)", fontSize:10, padding:"0 2px"
-            }}
-            title={conv.pinned ? "Unpin" : "Pin"}
-          >
+          <button onClick={e => onPin(e, conv.id, conv.pinned)}
+            style={{background:"none", border:"none", cursor:"pointer",
+              color:"var(--dim)", fontSize:10, padding:"0 2px"}}
+            title={conv.pinned ? "Unpin" : "Pin"}>
             {conv.pinned ? "★" : "☆"}
           </button>
-          <button
-            onClick={e => onDelete(e, conv.id)}
-            style={{
-              background:"none", border:"none", cursor:"pointer",
-              color:"var(--dim)", fontSize:10, padding:"0 2px"
-            }}
-            title="Delete"
-          >
+          <button onClick={e => onDelete(e, conv.id)}
+            style={{background:"none", border:"none", cursor:"pointer",
+              color:"var(--dim)", fontSize:10, padding:"0 2px"}}
+            title="Delete">
             ×
           </button>
         </div>

@@ -346,3 +346,16 @@ body {
 .run-btn.running { border-color:var(--accent); color:var(--accent); animation:pulse 1s infinite; }
 
 @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+
+
+.chat-msg.system {
+  background: rgba(200,255,0,0.03);
+  border-bottom: 1px solid var(--border);
+}
+.chat-msg.system .chat-who { color: var(--dim2); }
+.chat-msg.system .chat-text { 
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--dim2);
+}
