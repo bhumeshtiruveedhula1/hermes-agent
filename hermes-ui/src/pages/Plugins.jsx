@@ -22,13 +22,8 @@ export default function Plugins() {
     setTimeout(() => setMsg(""), 3000)
   }
 
-  const approve = async (name) => {
-    setLoading(true)
-    await axios.post(`http://localhost:8000/api/plugins/${name}/approve`)
-    flash(`✅ Plugin '${name}' approved and active!`)
-    load()
-    setLoading(false)
-  }
+  
+  
 
   const reject = async (name) => {
     setLoading(true)
@@ -61,6 +56,19 @@ export default function Plugins() {
       setDesignResult({ error: "Design failed — check backend logs" })
     }
     setDesigning(false)
+  }
+
+
+  const approve = async (name) => {
+    setLoading(true)
+    const res = await axios.post(`http://localhost:8000/api/plugins/${name}/approve`)
+    if (res.data.ok) {
+      flash(`✅ Plugin '${name}' approved and active!`)
+    } else {
+      flash(`❌ Approval failed: ${res.data.error}`)
+    }
+    load()
+    setLoading(false)
   }
 
   return (
@@ -100,19 +108,56 @@ export default function Plugins() {
           </div>
 
           {designResult && (
-            <div style={{
-              marginTop:16, padding:"14px 16px",
-              background: designResult.error
-                ? "rgba(255,59,59,0.08)"
-                : "rgba(200,255,0,0.05)",
-              border: `1px solid ${designResult.error ? "var(--red)" : "rgba(200,255,0,0.3)"}`,
-              fontFamily:"Space Mono,monospace", fontSize:10,
-              color: designResult.error ? "var(--red)" : "var(--accent)"
-            }}>
-              {designResult.error
-                ? `❌ ${designResult.error}`
-                : `✅ Plugin '${designResult.plugin_name}' designed! Check Pending Approval below.`
-              }
+            <div style={{marginTop:16}}>
+              {designResult.error ? (
+                <div style={{
+                  padding:"14px 16px",
+                  background:"rgba(255,59,59,0.08)",
+                  border:"1px solid var(--red)",
+                  fontFamily:"Space Mono,monospace", fontSize:10, color:"var(--red)"
+                }}>❌ {designResult.error}</div>
+              ) : (
+                <div>
+                  <div style={{
+                    padding:"14px 16px", marginBottom:8,
+                    background:"rgba(200,255,0,0.05)",
+                    border:"1px solid rgba(200,255,0,0.3)",
+                    fontFamily:"Space Mono,monospace", fontSize:10, color:"var(--accent)"
+                  }}>
+                    ✅ Plugin '{designResult.plugin_name}' designed — review below then approve from Pending
+                  </div>
+
+                  {/* SPEC PREVIEW */}
+                  <div style={{marginBottom:8}}>
+                    <div style={{fontFamily:"Space Mono,monospace", fontSize:9,
+                      letterSpacing:2, textTransform:"uppercase", color:"var(--dim2)",
+                      marginBottom:6}}>Plugin Spec</div>
+                    <pre style={{
+                      background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)",
+                      padding:"12px 16px", fontFamily:"Space Mono,monospace", fontSize:9,
+                      color:"var(--dim2)", overflowX:"auto", lineHeight:1.8,
+                      maxHeight:200, overflowY:"auto"
+                    }}>
+                      {JSON.stringify(designResult.spec, null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* CODE PREVIEW */}
+                  <div>
+                    <div style={{fontFamily:"Space Mono,monospace", fontSize:9,
+                      letterSpacing:2, textTransform:"uppercase", color:"var(--dim2)",
+                      marginBottom:6}}>Generated Python Code</div>
+                    <pre style={{
+                      background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)",
+                      padding:"12px 16px", fontFamily:"Space Mono,monospace", fontSize:9,
+                      color:"var(--dim2)", overflowX:"auto", lineHeight:1.8,
+                      maxHeight:300, overflowY:"auto"
+                    }}>
+                      {designResult.code}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -293,13 +338,16 @@ export default function Plugins() {
           color:"var(--dim2)", lineHeight:2
         }}>
           <div style={{color:"var(--accent)", marginBottom:8}}>TO INSTALL A NEW PLUGIN:</div>
-          <div>1. Describe it above → Hermes designs it automatically</div>
-          <div>2. OR drop a JSON spec into <span style={{color:"var(--white)"}}>plugins/pending/</span></div>
-          <div>3. It appears in Pending Approval above</div>
-          <div>4. Click Approve → plugin goes live immediately</div>
+          <div>1. Describe it above — Hermes designs it automatically</div>
+          <div>2. Review the spec and code shown after design</div>
+          <div>3. It appears in Pending Approval — import is tested before activating</div>
+          <div>4. Click Approve — only activates if import test passes</div>
           <div>5. New tools available in chat with zero code changes</div>
-          <div style={{marginTop:12, color:"var(--accent)"}}>TO DISABLE A PLUGIN:</div>
-          <div>Click Disable on any active plugin above</div>
+          <div style={{marginTop:12, color:"var(--accent)"}}>SAFETY:</div>
+          <div>• Syntax checked before saving to pending</div>
+          <div>• Import tested before activating</div>
+          <div>• Backup created before disabling</div>
+          <div>• Restore via API: POST /api/plugins/name/restore</div>
         </div>
       </div>
 

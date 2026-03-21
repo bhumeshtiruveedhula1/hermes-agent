@@ -79,7 +79,18 @@ class BrowserSession:
                 result = self._run(self.engine.click(target))
 
             elif action == "fill":
-                result = self._run(self.engine.fill(target, value))
+                # Try multiple selectors if first fails
+                selectors = [target] if target else []
+                selectors += ["input#search", "input[name='search_query']",
+                             "textarea[name='q']", "input[type='search']",
+                             "input[type='text']"]
+                result = "[ERROR] Could not find input field"
+                for sel in selectors:
+                    try:
+                        result = self._run(self.engine.fill(sel, value))
+                        break
+                    except Exception:
+                        continue
 
             elif action == "press":
                 result = self._run(self.engine.press(target))

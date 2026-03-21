@@ -380,6 +380,24 @@ async def chat_mission(req: ConvMessageRequest):
 
         # Save original user message
         conv_store.add_message(req.conv_id, "user", req.message)
+        
+        # Check for plugin designer request
+        msg_lower = corrected_msg.lower()
+        if any(phrase in msg_lower for phrase in ["design a plugin", "create a plugin", "add a plugin", "make a plugin", "build a plugin"]):
+            from core.plugin_designer import PluginDesigner
+            designer = PluginDesigner(hermes_agents.manager_llm)
+            try:
+                result_data = designer.design(corrected_msg)
+                result = f"Plugin '{result_data['plugin_name']}' designed! Go to the Plugins tab to review the spec, code, and approve it."
+                conv_store.add_message(req.conv_id, "user", req.message)
+                conv_store.add_message(req.conv_id, "hermes", result, ["plugin_designer"])
+                await broadcast({"type": "plugin_designed", "name": result_data["plugin_name"]})
+                return {"plan": {}, "result": result, "tools_used": ["plugin_designer"], "corrections": corrections}
+            except Exception as e:
+                result = f"[ERROR] Plugin design failed: {e}"
+                conv_store.add_message(req.conv_id, "user", req.message)
+                conv_store.add_message(req.conv_id, "hermes", result, [])
+                return {"plan": {}, "result": result, "tools_used": [], "corrections": corrections}
 
         # Run through Hermes with corrected input
         raw_plan = planner.create_plan(corrected_msg)
@@ -453,3 +471,42 @@ def _generate_summary(tools: list, result: str) -> str:
     if not tools:
         return result[:100]
     return f"Used {', '.join(tools[:3])}. {result[:80]}..."
+
+@app.post("/api/plugins/{name}/approve")
+async def approve_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success, message = PluginLoader.approve_plugin(name)
+    if success:
+        await broadcast({"type": "plugin_approved", "name": name})
+        return {"ok": True, "message": message}
+    else:
+        return {"ok": False, "error": message}
+    
+@app.post("/api/plugins/{name}/restore")
+async def restore_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success = PluginLoader.restore_plugin(name)
+    if success:
+        await broadcast({"type": "plugin_restored", "name": name})
+    return {"ok": success}
+
+
+
+
+
+import asyncio
+pending_approvals: dict = {}
+
+class ApprovalResponse(BaseModel):
+    approved: bool
+
+@app.get("/api/approvals/pending")
+def get_pending_approvals():
+    return list(pending_approvals.keys())
+
+@app.post("/api/approvals/{approval_id}/respond")
+async def respond_approval(approval_id: str, req: ApprovalResponse):
+    if approval_id in pending_approvals:
+        pending_approvals[approval_id]["approved"] = req.approved
+        pending_approvals[approval_id]["event"].set()
+    return {"ok": True}

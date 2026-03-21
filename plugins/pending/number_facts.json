@@ -1,0 +1,28 @@
+{
+  "name": "number_facts",
+  "version": "1.0",
+  "status": "pending",
+  "description": "Provides interesting facts about any number",
+  "auth": {
+    "type": "none",
+    "env_var": ""
+  },
+  "tools": [
+    {
+      "name": "get_number_fact",
+      "description": "Retrieves an interesting fact about a given number",
+      "planner_hint": "Use this tool when the user asks for a fact about a specific number, formatting the description field with the number",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.number_facts",
+    "class": "NumberFactsCapability",
+    "action_map": {
+      "get_number_fact": {
+        "action": "get_fact",
+        "parse": "query"
+      }
+    }
+  }
+}

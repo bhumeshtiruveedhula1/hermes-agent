@@ -22,5 +22,33 @@
     "created_at": "2026-03-21T14:28:54.894850",
     "updated_at": "2026-03-21T14:29:10.632683",
     "message_count": 2
+  },
+  {
+    "id": "conv_20260321_155946_b2c962",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [
+      "plugin_designer"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-21T15:59:46.317902",
+    "updated_at": "2026-03-21T16:00:43.663521",
+    "message_count": 3
+  },
+  {
+    "id": "conv_20260321_145031_77d56d",
+    "title": "Searched web",
+    "summary": "Used search_web. SOURCE: Top Searches on YouTube (January 2026) - Exploding Topics\nCONTENT: \n    ...",
+    "tools_used": [
+      "search_web",
+      "browser_go",
+      "browser_fill",
+      "browser_read",
+      "browser_click"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-21T14:50:31.649546",
+    "updated_at": "2026-03-21T16:09:10.266670",
+    "message_count": 18
   }
 ]

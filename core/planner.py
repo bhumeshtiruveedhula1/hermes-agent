@@ -100,6 +100,8 @@ CRITICAL CONSTRAINTS:
 - If the request is about system control, permissions, credentials,
   scheduler, vault, or execution settings, set tool to null.
 - "browser_open", "browser_navigate", "open_browser" DO NOT EXIST. Use "browser_go".
+- If user says "design a plugin", "create a plugin", "add a plugin", "make a plugin" → set tool to null and description to "PLUGIN_DESIGNER_REQUEST: <description>"
+
 
 SECURITY RULES:
 - NEVER suggest exploiting, bypassing, or breaking system safeguards.

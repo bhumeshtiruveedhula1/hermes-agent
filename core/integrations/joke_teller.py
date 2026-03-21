@@ -6,24 +6,23 @@ from core.audit.audit_event import AuditEvent
 import random
 
 class JokeTellerCapability:
-    jokes = [
-        "Why don't scientists trust atoms? Because they make up everything!",
-        "What do you call fake spaghetti? An impasta!",
-        "Why did the scarecrow win an award? Because he was outstanding in his field!",
-        "What do you get when you cross a snowman and a vampire? Frostbite!",
-        "Why did the math book look sad? Because it had too many problems."
-    ]
-
     def __init__(self):
         self.audit = AuditLogger()
-
+        self.jokes = [
+            "Why did the chicken cross the road? To get to the other side!",
+            "What do you call fake spaghetti? An impasta!",
+            "Why don't scientists trust atoms? Because they make up everything!",
+            "How do you organize a space party? You planet!",
+            "Why did the math book look sad? Because it had too many problems."
+        ]
+    
     def execute(self, *, action: str, query: str = "", **kwargs) -> str:
         try:
-            if action == "tell_joke":
+            if action == 'tell_joke':
                 joke = random.choice(self.jokes)
-                self.audit.log(AuditEvent("JokeTold", f"User asked for a joke. Joke: {joke}"))
+                self.audit.log(AuditEvent(action=action, data={"query": query, "joke": joke}))
                 return joke
             else:
-                return "[ERROR] Unknown action: {}".format(action)
+                return "[ERROR] Unsupported action"
         except Exception as e:
-            return "[ERROR] Failed to process action: {}".format(str(e))
+            return f"[ERROR] {str(e)}"

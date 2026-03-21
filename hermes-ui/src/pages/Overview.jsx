@@ -85,8 +85,8 @@ export default function Overview({ status, liveEvents }) {
       <div className="stat-strip">
         <div className="stat-cell">
           <div className="stat-label">Agents Active</div>
-          <div className="stat-value accent">7.6</div>
-          <div className="stat-sub">mission log complete</div>
+          <div className="stat-value accent">{status?.agents_enabled ?? "—"}</div>
+          <div className="stat-sub">of {status?.agents_total ?? "—"} registered</div>
         </div>
         <div className="stat-cell">
           <div className="stat-label">Live Events</div>
@@ -95,8 +95,8 @@ export default function Overview({ status, liveEvents }) {
         </div>
         <div className="stat-cell">
           <div className="stat-label">Phase</div>
-          <div className="stat-value accent">5.4</div>
-          <div className="stat-sub">auto tool builder</div>
+          <div className="stat-value accent">7.6</div>
+          <div className="stat-sub">mission log complete</div>
         </div>
         <div className="stat-cell">
           <div className="stat-label">Security</div>

@@ -224,17 +224,44 @@ class PluginLoader:
         return result
 
     @classmethod
-    def approve_plugin(cls, plugin_name: str) -> bool:
-        """Move plugin from pending to active."""
+    def approve_plugin(cls, plugin_name: str) -> tuple[bool, str]:
+        """Move plugin from pending to active — with import test."""
         pending_file = PENDING_DIR / f"{plugin_name}.json"
         active_file  = ACTIVE_DIR  / f"{plugin_name}.json"
+
         if not pending_file.exists():
-            return False
-        active_file.write_text(pending_file.read_text())
+            return False, "Plugin not found in pending"
+
+        # Read spec
+        spec = json.loads(pending_file.read_text(encoding="utf-8"))
+        module_path = spec.get("executor", {}).get("module", "")
+        class_name  = spec.get("executor", {}).get("class", "")
+
+        # Safe import test
+        if module_path and class_name:
+            ok, error = cls._test_import(module_path, class_name)
+            if not ok:
+                return False, f"Import test failed: {error}"
+
+        # All good — move to active
+        active_file.write_text(pending_file.read_text(encoding="utf-8"), encoding="utf-8")
         pending_file.unlink()
-        cls._loaded = False  # Force reload
+        cls._loaded = False
         cls.load()
-        return True
+        return True, "ok"
+
+    @classmethod
+    def _test_import(cls, module_path: str, class_name: str) -> tuple[bool, str]:
+        """Try importing the plugin module safely."""
+        import importlib
+        try:
+            module = importlib.import_module(module_path)
+            cls_obj = getattr(module, class_name, None)
+            if cls_obj is None:
+                return False, f"Class '{class_name}' not found in module"
+            return True, ""
+        except Exception as e:
+            return False, str(e)
 
     @classmethod
     def reject_plugin(cls, plugin_name: str) -> bool:
@@ -242,6 +269,43 @@ class PluginLoader:
         if not pending_file.exists():
             return False
         pending_file.unlink()
+        return True
+    
+    @classmethod
+    def disable_plugin(cls, plugin_name: str) -> bool:
+        active_file = ACTIVE_DIR / f"{plugin_name}.json"
+        if not active_file.exists():
+            return False
+
+        # Backup before disabling
+        backup_dir = PLUGINS_DIR / "backups"
+        backup_dir.mkdir(exist_ok=True)
+        backup_file = backup_dir / f"{plugin_name}_backup.json"
+        backup_file.write_text(active_file.read_text(encoding="utf-8"), encoding="utf-8")
+
+        spec = json.loads(active_file.read_text(encoding="utf-8"))
+        spec["status"] = "disabled"
+        active_file.write_text(json.dumps(spec, indent=2), encoding="utf-8")
+        cls._plugins.pop(plugin_name, None)
+        print(f"[PLUGIN LOADER] Plugin '{plugin_name}' disabled. Backup saved.")
+        return True
+
+    @classmethod
+    def restore_plugin(cls, plugin_name: str) -> bool:
+        """Restore a disabled plugin from backup."""
+        backup_dir  = PLUGINS_DIR / "backups"
+        backup_file = backup_dir / f"{plugin_name}_backup.json"
+        active_file = ACTIVE_DIR / f"{plugin_name}.json"
+
+        if not backup_file.exists():
+            return False
+
+        spec = json.loads(backup_file.read_text(encoding="utf-8"))
+        spec["status"] = "active"
+        active_file.write_text(json.dumps(spec, indent=2), encoding="utf-8")
+        cls._loaded = False
+        cls.load()
+        print(f"[PLUGIN LOADER] Plugin '{plugin_name}' restored from backup.")
         return True
 
     @classmethod

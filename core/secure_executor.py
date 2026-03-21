@@ -114,13 +114,13 @@ class SecureExecutor:
                     action_map = {
                         "browser_go":     ("navigate",   clean_target, ""),
                         "browser_read":   ("get_text",   "", ""),
-                        "browser_click":  ("click",      description, ""),
+                        "browser_click":  ("click", description.replace("'", "\\'"), ""),
                         "browser_shot":   ("screenshot", "", ""),
                         "browser_scroll": ("scroll",     description or "down", ""),
                         "browser_close":  ("close",      "", ""),
                         "browser_fill":   ("fill",
-                                          description.split("=")[0] if "=" in description else description,
-                                          description.split("=", 1)[1] if "=" in description else ""),
+                                          description.split("=")[0].strip() if "=" in description else "input[name='search_query'], input#search, input[type='search'], textarea[name='q']",
+                                          description.split("=", 1)[1].strip() if "=" in description else description),
                     }
 
                     action, target, value = action_map[tool_name]
