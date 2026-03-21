@@ -15,6 +15,7 @@ def _get_allowed_tools() -> set:
         "calendar_list", "calendar_today", "calendar_search", "calendar_create",
         "github_repos", "github_repo_info", "github_issues", "github_prs",
         "github_commits", "github_search", "github_create_issue",
+        "browser_press",
         None
     }
     return static | PluginLoader.get_all_tool_names()

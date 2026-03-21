@@ -61,9 +61,65 @@ class BrowserEngine:
         return text[:3000]
 
     async def click(self, selector: str) -> str:
-        await self._page.click(selector, timeout=10000)
-        await self._page.wait_for_load_state("domcontentloaded")
-        return f"Clicked: {selector}"
+        return await self.smart_click(selector)
+
+    async def smart_click(self, target: str) -> str:
+        """Try multiple click strategies intelligently."""
+
+        # Strategy 1 — direct CSS selector
+        try:
+            await self._page.click(target, timeout=4000)
+            await self._page.wait_for_load_state("domcontentloaded")
+            return f"Clicked: {target}"
+        except Exception:
+            pass
+
+        # Strategy 2 — find by text content
+        try:
+            await self._page.get_by_text(target, exact=False).first.click(timeout=4000)
+            await self._page.wait_for_load_state("domcontentloaded")
+            return f"Clicked by text: {target}"
+        except Exception:
+            pass
+
+        # Strategy 3 — find link by text
+        try:
+            clean = target[:30].replace("'", "")
+            await self._page.locator(f"a:has-text('{clean}')").first.click(timeout=4000)
+            await self._page.wait_for_load_state("domcontentloaded")
+            return f"Clicked link: {target}"
+        except Exception:
+            pass
+
+        # Strategy 4 — JavaScript click on element containing text
+        try:
+            clean_js = target[:40].replace('"', '').replace("'", "")
+            await self._page.evaluate(f"""
+                const els = document.querySelectorAll('a, button, [role="link"], ytd-video-renderer, ytd-compact-video-renderer');
+                for (const el of els) {{
+                    if (el.textContent.includes("{clean_js}")) {{
+                        el.click();
+                        break;
+                    }}
+                }}
+            """)
+            await self._page.wait_for_load_state("domcontentloaded")
+            return f"Clicked via JS: {target}"
+        except Exception:
+            pass
+
+        # Strategy 5 — extract URL from description and navigate directly
+        try:
+            import re
+            url_match = re.search(r'https?://[^\s]+', target)
+            if url_match:
+                url = url_match.group(0)
+                await self._page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                return f"Navigated to: {self._page.url}"
+        except Exception:
+            pass
+
+        return f"[BLOCKED] Could not interact with: {target}"
 
     async def fill(self, selector: str, value: str) -> str:
         await self._page.fill(selector, value)

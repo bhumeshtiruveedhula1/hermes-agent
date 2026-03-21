@@ -74,6 +74,8 @@ BROWSER RULES:
 - Use browser_read immediately after browser_go to read page content
 - To close: EXACTLY "browser_close"
 - NEVER navigate to localhost or 127.0.0.1
+- "press enter", "hit enter", "submit" after filling → use browser_press with description "Enter"
+- browser_press description should be the key name: "Enter", "Tab", "Escape"
 
 GMAIL RULES:
 - "check my emails", "show emails", "list emails", "unread emails", "inbox" → ALWAYS use "gmail_list"
@@ -138,6 +140,7 @@ Output JSON ONLY. No explanations. No markdown. No code blocks.
             "calendar_list", "calendar_today", "calendar_search", "calendar_create",
             "github_repos", "github_repo_info", "github_issues", "github_prs",
             "github_commits", "github_search", "github_create_issue",
+            "browser_press",
             None
         } | PluginLoader.get_all_tool_names()
 

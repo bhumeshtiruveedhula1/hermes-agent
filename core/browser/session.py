@@ -79,15 +79,19 @@ class BrowserSession:
                 result = self._run(self.engine.click(target))
 
             elif action == "fill":
-                # Try multiple selectors if first fails
-                selectors = [target] if target else []
+                import re
+                # Extract just the search value if it's a sentence
+                # "fill search box with X" → extract X
+                value_match = re.search(r'(?:with|value|=)\s*["\']?([^"\']+)["\']?(?:\s+and|\s*$)', value, re.IGNORECASE)
+                clean_value = value_match.group(1).strip() if value_match else value
+
+                selectors = [target] if target and not target.startswith("input[name") else []
                 selectors += ["input#search", "input[name='search_query']",
-                             "textarea[name='q']", "input[type='search']",
-                             "input[type='text']"]
+                             "textarea[name='q']", "input[type='search']"]
                 result = "[ERROR] Could not find input field"
                 for sel in selectors:
                     try:
-                        result = self._run(self.engine.fill(sel, value))
+                        result = self._run(self.engine.fill(sel, clean_value))
                         break
                     except Exception:
                         continue
