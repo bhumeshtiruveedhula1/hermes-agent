@@ -7,8 +7,9 @@ import Files from "./pages/Files"
 import AuditLog from "./pages/AuditLog"
 import "./App.css"
 import Browser from "./pages/Browser"
+import Plugins from "./pages/Plugins"
 
-const TABS = ["Overview", "Chat", "Agents", "Files", "Audit Log", "Browser"]
+const TABS = ["Overview", "Chat", "Agents", "Files", "Audit Log", "Browser", "Plugins"]
 export default function App() {
   const [tab, setTab] = useState("Overview")
   const [status, setStatus] = useState(null)
@@ -95,6 +96,7 @@ export default function App() {
           {tab === "Files"     && <Files />}
           {tab === "Audit Log" && <AuditLog liveEvents={liveEvents} />}
           {tab === "Browser"    && <Browser />}
+          {tab === "Plugins"    && <Plugins />}
         </main>
 
       </div>
