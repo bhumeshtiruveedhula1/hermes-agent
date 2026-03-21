@@ -9,6 +9,8 @@ import json
 import asyncio
 from pathlib import Path
 from datetime import datetime
+from core.conversation_store import ConversationStore
+conv_store = ConversationStore()
 
 # ── Hermes core imports ──────────────────────────────────────────────
 import agents as hermes_agents
@@ -305,3 +307,134 @@ async def disable_plugin(name: str):
     from core.plugin_loader import PluginLoader
     success = PluginLoader.disable_plugin(name)
     return {"ok": success}
+
+# ── Plugin Designer endpoint ──────────────────────────────────────────
+
+class PluginDesignRequest(BaseModel):
+    description: str
+
+@app.post("/api/plugins/design")
+async def design_plugin(req: PluginDesignRequest):
+    from core.plugin_designer import PluginDesigner
+    designer = PluginDesigner(hermes_agents.manager_llm)
+    try:
+        result = designer.design(req.description)
+        await broadcast({"type": "plugin_designed", "name": result["plugin_name"]})
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+    
+    
+    
+    
+    # ── Conversation / Mission Log endpoints ─────────────────────────────
+
+class ConvMessageRequest(BaseModel):
+    conv_id: str
+    message: str
+
+class PinRequest(BaseModel):
+    pinned: bool
+
+@app.post("/api/conversations")
+def create_conversation():
+    return conv_store.create()
+
+@app.get("/api/conversations")
+def list_conversations(search: str = ""):
+    return conv_store.list_all(search)
+
+@app.get("/api/conversations/{conv_id}")
+def get_conversation(conv_id: str):
+    conv = conv_store.get(conv_id)
+    if not conv:
+        return {"error": "Not found"}
+    return conv
+
+@app.delete("/api/conversations/{conv_id}")
+def delete_conversation(conv_id: str):
+    conv_store.delete(conv_id)
+    return {"ok": True}
+
+@app.post("/api/conversations/{conv_id}/pin")
+def pin_conversation(conv_id: str, req: PinRequest):
+    conv_store.pin(conv_id, req.pinned)
+    return {"ok": True}
+
+@app.post("/api/chat/mission")
+async def chat_mission(req: ConvMessageRequest):
+    """Chat endpoint that saves to conversation history."""
+    try:
+        # Save user message
+        conv_store.add_message(req.conv_id, "user", req.message)
+
+        # Run through Hermes
+        raw_plan = planner.create_plan(req.message)
+        plan = critic.review_plan(raw_plan)
+        result = executor.execute_plan(plan)
+
+        # Extract tools used from plan
+        tools_used = [
+            step.get("tool") for step in plan.get("steps", [])
+            if step.get("tool")
+        ]
+
+        # Save assistant response
+        conv_store.add_message(req.conv_id, "hermes", result, tools_used)
+
+        # Auto-generate title after 2nd message
+        conv = conv_store.get(req.conv_id)
+        if conv and len(conv["messages"]) == 2:
+            # Generate title from first exchange
+            title = _generate_title(req.message, result, tools_used)
+            conv_store.update_title(req.conv_id, title)
+            conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result))
+
+        await broadcast({
+            "type": "conversation_updated",
+            "conv_id": req.conv_id,
+            "tools": tools_used
+        })
+
+        return {
+            "plan": plan,
+            "result": result,
+            "tools_used": tools_used
+        }
+
+    except Exception as e:
+        return {"plan": {}, "result": f"[ERROR] {str(e)}", "tools_used": []}
+
+
+def _generate_title(user_msg: str, result: str, tools: list) -> str:
+    """Generate a mission title from the conversation."""
+    if not tools:
+        return user_msg[:50] + ("..." if len(user_msg) > 50 else "")
+
+    tool_labels = {
+        "gmail_list": "Checked emails",
+        "gmail_send": "Sent email",
+        "gmail_read": "Read email",
+        "calendar_today": "Checked calendar",
+        "calendar_create": "Created event",
+        "github_repos": "Browsed GitHub",
+        "github_commits": "Read commits",
+        "browser_go": "Browsed web",
+        "browser_read": "Read webpage",
+        "fs_list": "Listed files",
+        "fs_write": "Wrote file",
+        "fs_delete": "Deleted file",
+        "search_web": "Searched web",
+        "weather_current": "Checked weather",
+        "weather_forecast": "Got forecast",
+        "telegram_send": "Sent Telegram",
+    }
+
+    labels = [tool_labels.get(t, t) for t in tools[:3]]
+    return " + ".join(labels) if labels else user_msg[:50]
+
+
+def _generate_summary(tools: list, result: str) -> str:
+    if not tools:
+        return result[:100]
+    return f"Used {', '.join(tools[:3])}. {result[:80]}..."

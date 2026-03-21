@@ -8,14 +8,16 @@ import AuditLog from "./pages/AuditLog"
 import "./App.css"
 import Browser from "./pages/Browser"
 import Plugins from "./pages/Plugins"
+import History from "./pages/History"
 
-const TABS = ["Overview", "Chat", "Agents", "Files", "Audit Log", "Browser", "Plugins"]
+const TABS = ["Overview", "Chat", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History"]
 export default function App() {
   const [tab, setTab] = useState("Overview")
   const [status, setStatus] = useState(null)
   const [clock, setClock] = useState("")
   const [ws, setWs] = useState(null)
   const [liveEvents, setLiveEvents] = useState([])
+  
 
   useEffect(() => {
     fetch("http://localhost:8000/api/status")
@@ -97,6 +99,7 @@ export default function App() {
           {tab === "Audit Log" && <AuditLog liveEvents={liveEvents} />}
           {tab === "Browser"    && <Browser />}
           {tab === "Plugins"    && <Plugins />}
+          {tab === "History"    && <History />}
         </main>
 
       </div>

@@ -6,6 +6,9 @@ export default function Plugins() {
   const [data, setData] = useState({ active: [], pending: [] })
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState("")
+  const [designInput, setDesignInput] = useState("")
+  const [designing, setDesigning] = useState(false)
+  const [designResult, setDesignResult] = useState(null)
 
   const load = () =>
     axios.get("http://localhost:8000/api/plugins")
@@ -43,8 +46,78 @@ export default function Plugins() {
     setLoading(false)
   }
 
+  const designPlugin = async () => {
+    if (!designInput.trim()) return
+    setDesigning(true)
+    setDesignResult(null)
+    try {
+      const res = await axios.post("http://localhost:8000/api/plugins/design", {
+        description: designInput
+      })
+      setDesignResult(res.data)
+      setDesignInput("")
+      load()
+    } catch (e) {
+      setDesignResult({ error: "Design failed — check backend logs" })
+    }
+    setDesigning(false)
+  }
+
   return (
     <div>
+
+      {/* AI PLUGIN DESIGNER */}
+      <div style={{marginBottom:32}}>
+        <div className="section-label">AI Plugin Designer</div>
+        <div style={{
+          border:"1px solid var(--border2)", padding:"20px 24px",
+          background:"var(--black)"
+        }}>
+          <div style={{
+            fontFamily:"Space Mono,monospace", fontSize:10,
+            color:"var(--dim2)", marginBottom:12
+          }}>
+            Describe a new integration in plain English — Hermes will design it
+          </div>
+          <div style={{display:"flex", gap:0}}>
+            <input
+              className="chat-input"
+              style={{flex:1, border:"1px solid var(--border2)",
+                borderRight:"none", padding:"12px 18px"}}
+              placeholder="a Spotify plugin that shows what's playing and controls playback"
+              value={designInput}
+              onChange={e => setDesignInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && designPlugin()}
+              disabled={designing}
+            />
+            <button
+              className="chat-send"
+              onClick={designPlugin}
+              disabled={designing}
+            >
+              {designing ? "Designing..." : "Design"}
+            </button>
+          </div>
+
+          {designResult && (
+            <div style={{
+              marginTop:16, padding:"14px 16px",
+              background: designResult.error
+                ? "rgba(255,59,59,0.08)"
+                : "rgba(200,255,0,0.05)",
+              border: `1px solid ${designResult.error ? "var(--red)" : "rgba(200,255,0,0.3)"}`,
+              fontFamily:"Space Mono,monospace", fontSize:10,
+              color: designResult.error ? "var(--red)" : "var(--accent)"
+            }}>
+              {designResult.error
+                ? `❌ ${designResult.error}`
+                : `✅ Plugin '${designResult.plugin_name}' designed! Check Pending Approval below.`
+              }
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* FLASH MESSAGE */}
       {msg && (
         <div style={{
@@ -110,7 +183,6 @@ export default function Plugins() {
                 {p.description}
               </div>
 
-              {/* TOOLS LIST */}
               <div style={{
                 background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)",
                 padding:"10px 14px", marginBottom:16
@@ -166,7 +238,6 @@ export default function Plugins() {
                 {p.description}
               </div>
 
-              {/* SPEC PREVIEW */}
               <div style={{
                 background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)",
                 padding:"12px 14px", marginBottom:16,
@@ -222,14 +293,16 @@ export default function Plugins() {
           color:"var(--dim2)", lineHeight:2
         }}>
           <div style={{color:"var(--accent)", marginBottom:8}}>TO INSTALL A NEW PLUGIN:</div>
-          <div>1. Drop a JSON spec file into <span style={{color:"var(--white)"}}>plugins/pending/</span></div>
-          <div>2. It appears here as "Pending Approval"</div>
-          <div>3. Click Approve → plugin goes live immediately</div>
-          <div>4. New tools available in chat with zero code changes</div>
+          <div>1. Describe it above → Hermes designs it automatically</div>
+          <div>2. OR drop a JSON spec into <span style={{color:"var(--white)"}}>plugins/pending/</span></div>
+          <div>3. It appears in Pending Approval above</div>
+          <div>4. Click Approve → plugin goes live immediately</div>
+          <div>5. New tools available in chat with zero code changes</div>
           <div style={{marginTop:12, color:"var(--accent)"}}>TO DISABLE A PLUGIN:</div>
           <div>Click Disable on any active plugin above</div>
         </div>
       </div>
+
     </div>
   )
 }
