@@ -66,16 +66,18 @@ export default function Overview({ status, liveEvents }) {
   ]
 
   const roadmap = [
-    ["Phase 0 — Core Runtime",         "done"],
-    ["Phase 1 — Scheduler",            "done"],
-    ["Phase 2 — Filesystem Read",      "done"],
-    ["Phase 3 — Filesystem Write",     "done"],
-    ["Phase 4 — Dashboard UI",         "done"],
-    ["Phase 5.1 — Browser Engine",     "done"],
-    ["Phase 5.2 — Browser Session",    "done"],
-    ["Phase 5.3 — Live Screenshots",   "done"],
-    ["Phase 5.4 — Auto Tool Builder",  "done"],
-    ["Phase 5.5 — GitHub & README",    "pending"],
+  ["Phase 0 — Core Runtime",          "done"],
+  ["Phase 1 — Scheduler",             "done"],
+  ["Phase 2 — Filesystem Read",       "done"],
+  ["Phase 3 — Filesystem Write",      "done"],
+  ["Phase 4 — Dashboard UI",          "done"],
+  ["Phase 5 — Browser Control",       "done"],
+  ["Phase 6 — Gmail/Calendar/GitHub", "done"],
+  ["Phase 7 — Plugin Architecture",   "done"],
+  ["Phase 7.5 — AI Plugin Creator",   "done"],
+  ["Phase 7.6 — Mission Log",         "done"],
+  ["Phase 8 — Autocorrect",           "pending"],
+  ["Phase 9 — Multi-user",            "pending"],
   ]
 
   return (
@@ -83,8 +85,8 @@ export default function Overview({ status, liveEvents }) {
       <div className="stat-strip">
         <div className="stat-cell">
           <div className="stat-label">Agents Active</div>
-          <div className="stat-value accent">{status?.agents_enabled ?? "—"}</div>
-          <div className="stat-sub">of {status?.agents_total ?? "—"} registered</div>
+          <div className="stat-value accent">7.6</div>
+          <div className="stat-sub">mission log complete</div>
         </div>
         <div className="stat-cell">
           <div className="stat-label">Live Events</div>

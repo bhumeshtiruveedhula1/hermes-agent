@@ -14,6 +14,7 @@ ACTIVE_DIR  = PLUGINS_DIR / "active"
 PENDING_DIR = PLUGINS_DIR / "pending"
 
 
+
 class PluginTool:
     """Represents a single tool from a plugin."""
     def __init__(self, data: dict, plugin_name: str):
@@ -216,7 +217,7 @@ class PluginLoader:
         result = []
         for spec_file in PENDING_DIR.glob("*.json"):
             try:
-                spec = json.loads(spec_file.read_text())
+                spec = json.loads(spec_file.read_text(encoding="utf-8"))
                 result.append(spec)
             except Exception:
                 pass

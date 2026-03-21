@@ -1,0 +1,27 @@
+{
+  "name": "joke_teller",
+  "version": "1.0",
+  "status": "pending",
+  "description": "Serves random jokes to users",
+  "auth": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "tell_joke",
+      "description": "Serves a random joke to the user",
+      "planner_hint": "Use this tool when the user requests a joke, format the description as the joke content",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.joke_teller",
+    "class": "JokeTellerCapability",
+    "action_map": {
+      "tell_joke": {
+        "action": "tell_joke",
+        "parse": "none"
+      }
+    }
+  }
+}

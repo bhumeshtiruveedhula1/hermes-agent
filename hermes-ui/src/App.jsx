@@ -64,15 +64,15 @@ export default function App() {
         <div className="ticker">
           <div className="ticker-inner">
             {[
-              ["PHASE", "3 COMPLETE — FILESYSTEM R/W OPERATIONAL"],
+              ["PHASE", "7.5 COMPLETE — PLUGIN SYSTEM + MISSION LOG LIVE"],
               ["MODEL", "QWEN3:8B — RTX 4060"],
               ["AUDIT", "ALL ACTIONS LOGGED"],
               ["SANDBOX", "USER_1 — /DOCUMENTS MOUNTED"],
               ["SECURITY", "EXECUTION GATE ACTIVE"],
-              ["SCHEDULER", "FOLDER MONITOR READY"],
-              ["PHASE", "3 COMPLETE — FILESYSTEM R/W OPERATIONAL"],
+              ["PLUGINS", "WEATHER + TELEGRAM + JOKE_TELLER ACTIVE"],
+              ["MISSIONS", "PERSISTENT CHAT HISTORY LIVE"],
+              ["PHASE", "7.5 COMPLETE — PLUGIN SYSTEM + MISSION LOG LIVE"],
               ["MODEL", "QWEN3:8B — RTX 4060"],
-              ["AUDIT", "ALL ACTIONS LOGGED"],
             ].map(([k, v], i) => (
               <div className="ticker-item" key={i}>
                 <span className="ticker-key">{k}</span>{v}

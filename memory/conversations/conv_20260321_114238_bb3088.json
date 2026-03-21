@@ -1,0 +1,27 @@
+{
+  "id": "conv_20260321_114238_bb3088",
+  "title": "Checked emails",
+  "created_at": "2026-03-21T11:42:38.746003",
+  "updated_at": "2026-03-21T11:45:02.112426",
+  "messages": [
+    {
+      "role": "user",
+      "text": "check my email tell me the lates email i got",
+      "ts": "2026-03-21T11:42:38.760505",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "ID: 19d0ee25d9d3ed65\nFrom: \"Chess.com\" <hello@chess.com>\nSubject: make_me_intelligentplease, Use Your Free Game Review!\nDate: Sat, 21 Mar 2026 05:33:27 +0000 (UTC)\nPreview: Unlock your best chess moves \ud83d\udd10 \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c \u200c\n---\nID: 19d0de85cc07d62c\nFrom: \"Isa @ Twilio\" <teamtwilio@team.twilio.com>\nSubject: Quick heads-up: Verify your toll-free number to start messaging\nDate: Sat, 21 Mar 2026 01:00:23 +0000 (UTC)\nPreview: Verifying now lets you start sending SMS and helps avoid any delivery issues down the line. Hi Tiru, Youre making great \n---\nID: 19d0cc1ec23e75f5\nFrom: Google <no-reply@accounts.google.com>\nSubject: Security alert\nDate: Fri, 20 Mar 2026 19:38:46 GMT\nPreview: A new sign-in on Windows bhumeshtiruveedhula@gmail.com We noticed a new sign-in to your Google Account on a Windows devi\n---\nID: 19d0c49a49318c4f\nFrom: ChatGPT <noreply@email.openai.com>\nSubject: Try a new look, no strings attached\nDate: Fri, 20 Mar 2026 17:27:25 +0000 (UTC)\nPreview: Reimagine your photos with the latest styles Not sure where to start? Just pick a style Create something totally differe\n---\nID: 19d0c2e499cf6557\nFrom: Pinterest <recommendations@inspire.pinterest.com>\nSubject: Tiru, you\u2019re so good at curating\u2026\nDate: Fri, 20 Mar 2026 16:57:32 +0000\nPreview: mercedes formula 1 car wallpaper. Its not photoshopped I miss when f1 light edited like this \ud83d\ude14 Formula 1 4K Luis Hamilto",
+      "ts": "2026-03-21T11:45:02.108063",
+      "tools": [
+        "gmail_list"
+      ]
+    }
+  ],
+  "tools_used": [
+    "gmail_list"
+  ],
+  "summary": "Used gmail_list. ID: 19d0ee25d9d3ed65\nFrom: \"Chess.com\" <hello@chess.com>\nSubject: make_me_intell...",
+  "pinned": false
+}
