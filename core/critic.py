@@ -50,7 +50,8 @@ browser_go, browser_read, browser_click, browser_fill, browser_shot, browser_scr
 gmail_list, gmail_read, gmail_send, gmail_search,
 calendar_list, calendar_today, calendar_search, calendar_create,
 github_repos, github_repo_info, github_issues, github_prs, github_commits, github_search, github_create_issue,
-weather_current, weather_forecast
+weather_current, weather_forecast,
+telegram_send, telegram_read
 
 GOLDEN RULE: If a tool is in the ALLOWED list above — KEEP IT. NEVER change it to null.
 
@@ -68,6 +69,7 @@ TOOL CORRECTION RULES:
 - "weather_current", "weather_forecast" → KEEP, never null
 - ANY tool in the ALLOWED list → ALWAYS keep as-is
 - Any tool NOT in the ALLOWED list and cannot be corrected → set to null
+- "telegram_send", "telegram_read" are VALID — NEVER set to null
 
 RULES:
 - Output JSON ONLY. No markdown. No code blocks.

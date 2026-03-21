@@ -319,30 +319,50 @@ class SecureExecutor:
                 continue
 
             # ---------------- TOOL EXISTS ----------------
+            # ---------------- PLUGIN TOOLS (dynamic) ----------------
+            from core.plugin_loader import PluginLoader
+            plugin = PluginLoader.get_plugin_for_tool(tool_name)
+            if plugin:
+                if not self.execution_enabled:
+                    results.append("[BLOCKED] Execution disabled by system")
+                    continue
+
+                tool_spec = plugin.get_tool(tool_name)
+
+                if tool_spec and tool_spec.requires_approval:
+                    from colorama import Fore
+                    print(Fore.YELLOW + f"\n⚠️  PLUGIN APPROVAL REQUIRED")
+                    print(Fore.WHITE  + f"   Tool: {tool_name}")
+                    print(Fore.WHITE  + f"   Plugin: {plugin.name}")
+                    print(Fore.WHITE  + f"   Action: {description[:150]}")
+                    answer = input(Fore.CYAN + "   Approve? (yes/no): ").strip().lower()
+                    if answer not in ("yes", "y"):
+                        results.append(f"[REJECTED] Plugin tool '{tool_name}' rejected.")
+                        continue
+
+                result = plugin.execute(tool_name, description, step)
+                results.append(str(result))
+                continue
+
+            # ---------------- TOOL EXISTS ----------------
             if not self.tool_registry.get(tool_name):
-                # Try auto-building before giving up
                 built = self.auto_builder.attempt(tool_name, description)
 
                 if built:
-                    # Tool was built and registered — execute via LLM reasoning
                     response = self.llm.invoke([
                         SystemMessage(content=self.system_prompt),
                         HumanMessage(content=f"Execute this task using tool '{tool_name}': {description}")
                     ])
                     self.audit.log(AuditEvent(
-                        phase="auto_build",
-                        action="tool_execution",
-                        tool_name=tool_name,
-                        decision="executed",
+                        phase="auto_build", action="tool_execution",
+                        tool_name=tool_name, decision="executed",
                         metadata={"description": description[:120]}
                     ))
                     results.append(f"[AUTO-TOOL: {tool_name}]\n{response.content}")
                 else:
                     self.audit.log(AuditEvent(
-                        phase="execution",
-                        action="tool_call",
-                        tool_name=tool_name,
-                        decision="blocked",
+                        phase="execution", action="tool_call",
+                        tool_name=tool_name, decision="blocked",
                         reason="unknown_tool"
                     ))
                     results.append(f"[BLOCKED] Unknown tool: {tool_name}")

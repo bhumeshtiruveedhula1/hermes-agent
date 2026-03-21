@@ -1,0 +1,32 @@
+{
+  "name": "telegram",
+  "version": "1.0",
+  "status": "pending",
+  "description": "Telegram bot — send messages and read incoming messages",
+  "auth": {
+    "type": "api_key",
+    "env_var": "TELEGRAM_TOKEN"
+  },
+  "tools": [
+    {
+      "name": "telegram_send",
+      "description": "Send a message to Telegram",
+      "planner_hint": "Use to send a message or notification to Telegram. Put the message text in description.",
+      "requires_approval": false
+    },
+    {
+      "name": "telegram_read",
+      "description": "Read recent Telegram messages",
+      "planner_hint": "Use to check recent messages received on Telegram.",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.telegram",
+    "class": "TelegramCapability",
+    "action_map": {
+      "telegram_send": {"action": "send",        "parse": "query"},
+      "telegram_read": {"action": "get_updates", "parse": "none"}
+    }
+  }
+}
