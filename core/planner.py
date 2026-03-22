@@ -67,7 +67,8 @@ FILESYSTEM RULES:
 - NEVER return empty steps for filesystem requests.
 - Virtual paths look like: /documents/ or /documents/file.txt
 - NEVER use system paths like C:\\ or /etc/ or ~/.ssh/
-
+- When reading a file by name only (no path), assume it's in /documents/ — use /documents/filename
+- NEVER pass just a filename without the full virtual path
 BROWSER RULES:
 - To open ANY website: ALWAYS use "browser_go". NEVER "browser_open". NEVER "browser_navigate".
 - browser_go description must contain the full URL

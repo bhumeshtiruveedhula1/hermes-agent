@@ -1,0 +1,42 @@
+{
+  "id": "conv_20260322_020231_7678b0",
+  "title": "Wrote file",
+  "created_at": "2026-03-22T02:02:31.641830",
+  "updated_at": "2026-03-22T02:04:06.941795",
+  "messages": [
+    {
+      "role": "user",
+      "text": "write \"testing approval modal\" to /documents/modal_test.txt",
+      "ts": "2026-03-22T02:02:31.885699",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: modal_test.txt",
+      "ts": "2026-03-22T02:03:27.557579",
+      "tools": [
+        "fs_write"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "read the file modal_test.txt",
+      "ts": "2026-03-22T02:03:53.137501",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] Virtual path must start with /",
+      "ts": "2026-03-22T02:04:06.941776",
+      "tools": [
+        "fs_read"
+      ]
+    }
+  ],
+  "tools_used": [
+    "fs_write",
+    "fs_read"
+  ],
+  "summary": "Used fs_write. Written: modal_test.txt...",
+  "pinned": false
+}

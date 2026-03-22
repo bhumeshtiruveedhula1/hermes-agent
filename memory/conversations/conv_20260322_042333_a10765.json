@@ -1,0 +1,27 @@
+{
+  "id": "conv_20260322_042333_a10765",
+  "title": "Wrote file",
+  "created_at": "2026-03-22T04:23:33.419493",
+  "updated_at": "2026-03-22T04:23:51.470590",
+  "messages": [
+    {
+      "role": "user",
+      "text": "write \"hello world\" to /documents/notes.txt",
+      "ts": "2026-03-22T04:23:33.545023",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: notes.txt",
+      "ts": "2026-03-22T04:23:51.469431",
+      "tools": [
+        "fs_write"
+      ]
+    }
+  ],
+  "tools_used": [
+    "fs_write"
+  ],
+  "summary": "Used fs_write. Written: notes.txt...",
+  "pinned": false
+}

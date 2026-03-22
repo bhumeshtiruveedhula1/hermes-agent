@@ -1,16 +1,13 @@
 # api.py — Hermes FastAPI Backend
-# Place this in: C:\Users\bhumeshjyothi\Desktop\gemini\AI_Agent_System\api.py
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
-import json
 import asyncio
+import uuid
 from pathlib import Path
 from datetime import datetime
-from core.conversation_store import ConversationStore
-conv_store = ConversationStore()
+from typing import Optional
 
 # ── Hermes core imports ──────────────────────────────────────────────
 import agents as hermes_agents
@@ -26,28 +23,30 @@ from core.scheduler.scheduled_agent import ScheduledAgent
 from core.audit.audit_logger import AuditLogger
 from core.filesystem.capability import FilesystemCapability
 from core.filesystem.sandbox import SandboxResolver
+from core.conversation_store import ConversationStore
 import tools_web
 import tools_email
 
-# ── Bootstrap (same as main.py) ──────────────────────────────────────
-agent_store    = AgentStore()
+# ── Bootstrap ────────────────────────────────────────────────────────
+agent_store      = AgentStore()
 permission_store = PermissionStore()
 credential_vault = CredentialVault()
+conv_store       = ConversationStore()
 
-permission_store.grant("search_web",    "default")
-permission_store.grant("check_inbox",   "default")
-permission_store.grant("speak_out_loud","default")
-permission_store.grant("fs_list",       "default")
-permission_store.grant("fs_read",       "default")
-permission_store.grant("fs_write",      "default")
-permission_store.grant("fs_delete",     "default")
+permission_store.grant("search_web",     "default")
+permission_store.grant("check_inbox",    "default")
+permission_store.grant("speak_out_loud", "default")
+permission_store.grant("fs_list",        "default")
+permission_store.grant("fs_read",        "default")
+permission_store.grant("fs_write",       "default")
+permission_store.grant("fs_delete",      "default")
 
 credential_vault.register_placeholder("check_inbox", "gmail_oauth")
 
 tool_registry = ToolRegistry()
-tool_registry.register(ToolMeta("search_web",  tools_web.search_web,     approved=True, source="builtin"))
-tool_registry.register(ToolMeta("check_inbox", tools_email.check_inbox,  approved=True, source="builtin", requires_credentials=True))
-tool_registry.register(ToolMeta("draft_reply", tools_email.draft_reply,  approved=True, source="builtin", requires_credentials=True))
+tool_registry.register(ToolMeta("search_web",  tools_web.search_web,    approved=True, source="builtin"))
+tool_registry.register(ToolMeta("check_inbox", tools_email.check_inbox, approved=True, source="builtin", requires_credentials=True))
+tool_registry.register(ToolMeta("draft_reply", tools_email.draft_reply, approved=True, source="builtin", requires_credentials=True))
 
 system_prompt = "You are Hermes, an autonomous AI agent. Be practical and proactive."
 
@@ -84,7 +83,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── WebSocket broadcast ───────────────────────────────────────────────
+# ── WebSocket ─────────────────────────────────────────────────────────
 connected_clients: list[WebSocket] = []
 
 async def broadcast(event: dict):
@@ -95,7 +94,8 @@ async def broadcast(event: dict):
         except Exception:
             dead.append(ws)
     for ws in dead:
-        connected_clients.remove(ws)
+        if ws in connected_clients:
+            connected_clients.remove(ws)
 
 @app.websocket("/ws/stream")
 async def websocket_stream(ws: WebSocket):
@@ -103,31 +103,75 @@ async def websocket_stream(ws: WebSocket):
     connected_clients.append(ws)
     try:
         while True:
-            await asyncio.sleep(30)
+            try:
+                await asyncio.wait_for(ws.receive_text(), timeout=5.0)
+            except asyncio.TimeoutError:
+                await ws.send_json({"type": "ping"})
     except WebSocketDisconnect:
-        connected_clients.remove(ws)
+        if ws in connected_clients:
+            connected_clients.remove(ws)
+    except Exception:
+        if ws in connected_clients:
+            connected_clients.remove(ws)
+
+# ── Approval Queue ────────────────────────────────────────────────────
+approval_queue: dict[str, dict] = {}
 
 # ── Models ────────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
+    message: str
+
+class ConvMessageRequest(BaseModel):
+    conv_id: str
     message: str
 
 class WriteRequest(BaseModel):
     path: str
     content: str
 
-class AgentToggle(BaseModel):
+class BrowserNavRequest(BaseModel):
+    url: str
+
+class SafeModeRequest(BaseModel):
     enabled: bool
 
-# ── Routes ────────────────────────────────────────────────────────────
+class PluginDesignRequest(BaseModel):
+    description: str
 
+class PinRequest(BaseModel):
+    pinned: bool
+
+# ── Status ────────────────────────────────────────────────────────────
+@app.get("/api/status")
+def get_status():
+    return {
+        "online": True,
+        "model": "qwen3:8b",
+        "phase": "8.5",
+        "agents_total": len(agent_store.list_all()),
+        "agents_enabled": len([a for a in agent_store.list_all() if a.enabled]),
+        "ts": datetime.utcnow().isoformat(),
+    }
+
+# ── Settings ──────────────────────────────────────────────────────────
+@app.get("/api/settings")
+def get_settings():
+    return {"safe_mode": executor.safe_mode}
+
+@app.post("/api/settings/safemode")
+async def set_safe_mode(req: SafeModeRequest):
+    executor.safe_mode = req.enabled
+    executor.auto_builder.safe_mode = req.enabled
+    await broadcast({"type": "safe_mode_changed", "enabled": req.enabled})
+    return {"safe_mode": req.enabled}
+
+# ── Agents ────────────────────────────────────────────────────────────
 @app.get("/api/agents")
 def get_agents():
     return [
         {
-            "name": a.name,
-            "tool_name": a.tool_name,
-            "schedule": a.schedule,
-            "enabled": a.enabled,
+            "name": a.name, "tool_name": a.tool_name,
+            "schedule": a.schedule, "enabled": a.enabled,
             "last_run_at": a.last_run_at.isoformat() if a.last_run_at else None,
             "metadata": a.metadata,
         }
@@ -152,21 +196,20 @@ async def run_scheduler():
     await broadcast({"type": "scheduler_tick", "ts": datetime.utcnow().isoformat()})
     return {"ok": True}
 
+# ── Audit ─────────────────────────────────────────────────────────────
 @app.get("/api/audit")
 def get_audit(limit: int = 50):
     events = audit.load_events()
     result = []
     for e in events[-limit:]:
         result.append({
-            "ts":       e.get("timestamp", ""),
-            "phase":    e.get("phase", ""),
-            "action":   e.get("action", ""),
-            "decision": e.get("decision", ""),
-            "tool":     e.get("tool_name", ""),
-            "reason":   e.get("reason", ""),
+            "ts": e.get("timestamp", ""), "phase": e.get("phase", ""),
+            "action": e.get("action", ""), "decision": e.get("decision", ""),
+            "tool": e.get("tool_name", ""), "reason": e.get("reason", ""),
         })
     return list(reversed(result))
 
+# ── Files ─────────────────────────────────────────────────────────────
 @app.get("/api/files")
 def get_files(user_id: str = "user_1", path: str = "/documents"):
     try:
@@ -177,8 +220,7 @@ def get_files(user_id: str = "user_1", path: str = "/documents"):
         for p in physical.iterdir():
             stat = p.stat()
             items.append({
-                "name": p.name,
-                "is_dir": p.is_dir(),
+                "name": p.name, "is_dir": p.is_dir(),
                 "size": stat.st_size,
                 "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
             })
@@ -206,45 +248,12 @@ def read_file(path: str, user_id: str = "user_1"):
     result = fs.execute(action="read", path=path, user_id=user_id, agent="dashboard")
     return {"content": result}
 
-@app.post("/api/chat")
-async def chat(req: ChatRequest):
-    try:
-        from core.autocorrect import autocorrect
-        corrected_msg, corrections = autocorrect(req.message)
-
-        raw_plan = planner.create_plan(corrected_msg)
-        plan     = critic.review_plan(raw_plan)
-        result   = executor.execute_plan(plan)
-        await broadcast({"type": "chat_result", "message": req.message, "result": result})
-        return {
-            "plan": plan,
-            "result": result,
-            "corrections": corrections,
-            "corrected_input": corrected_msg if corrections else None
-        }
-    except Exception as e:
-        return {"plan": {}, "result": f"[ERROR] {str(e)}"}
-
-@app.get("/api/status")
-def get_status():
-    return {
-        "online": True,
-        "model": "qwen3:8b",
-        "phase": "3",
-        "agents_total": len(agent_store.list_all()),
-        "agents_enabled": len([a for a in agent_store.list_all() if a.enabled]),
-        "ts": datetime.utcnow().isoformat(),
-    }
-# ── Browser direct control endpoints ─────────────────────────────────
-
-class BrowserNavRequest(BaseModel):
-    url: str
-
+# ── Browser ───────────────────────────────────────────────────────────
 @app.post("/api/browser/screenshot")
 async def api_browser_screenshot():
     from core.browser.session import BrowserSession
     session = BrowserSession.get()
-    result = session.execute(action="screenshot")
+    result  = session.execute(action="screenshot")
     if result.startswith("[BLOCKED]") or result.startswith("[ERROR]"):
         return {"error": result}
     return {"screenshot": result}
@@ -253,7 +262,7 @@ async def api_browser_screenshot():
 async def api_browser_navigate(req: BrowserNavRequest):
     from core.browser.session import BrowserSession
     session = BrowserSession.get()
-    result = session.execute(action="navigate", target=req.url)
+    result  = session.execute(action="navigate", target=req.url)
     await broadcast({"type": "browser_navigate", "url": req.url})
     return {"result": result}
 
@@ -261,48 +270,69 @@ async def api_browser_navigate(req: BrowserNavRequest):
 async def api_browser_read():
     from core.browser.session import BrowserSession
     session = BrowserSession.get()
-    result = session.execute(action="get_text")
+    result  = session.execute(action="get_text")
     return {"text": result}
 
 @app.post("/api/browser/close")
 async def api_browser_close():
     from core.browser.session import BrowserSession
     session = BrowserSession.get()
-    result = session.execute(action="close")
+    result  = session.execute(action="close")
     return {"result": result}
 
+# ── Approvals ─────────────────────────────────────────────────────────
+@app.get("/api/approvals/pending")
+def get_pending_approvals():
+    return [
+        {k: v for k, v in a.items() if k != "event"}
+        for a in approval_queue.values()
+    ]
 
-class SafeModeRequest(BaseModel):
-    enabled: bool
+@app.post("/api/approvals/{approval_id}/approve")
+async def approve_action(approval_id: str):
+    print(f"[APPROVAL] Received approve for {approval_id}, in queue: {approval_id in approval_queue}")
+    if approval_id in approval_queue:
+        approval_queue[approval_id]["approved"] = True
+        approval_queue[approval_id]["event"].set()
+        await broadcast({"type": "approval_resolved", "id": approval_id, "approved": True})
+    return {"ok": True}
 
-@app.post("/api/settings/safemode")
-async def set_safe_mode(req: SafeModeRequest):
-    executor.safe_mode = req.enabled
-    executor.auto_builder.safe_mode = req.enabled
-    await broadcast({"type": "safe_mode_changed", "enabled": req.enabled})
-    return {"safe_mode": req.enabled}
+@app.post("/api/approvals/{approval_id}/reject")
+async def reject_action(approval_id: str):
+    if approval_id in approval_queue:
+        approval_queue[approval_id]["approved"] = False
+        approval_queue[approval_id]["event"].set()
+        await broadcast({"type": "approval_resolved", "id": approval_id, "approved": False})
+    return {"ok": True}
 
-@app.get("/api/settings")
-def get_settings():
-    return {"safe_mode": executor.safe_mode}
-
-
-# ── Plugin management endpoints ───────────────────────────────────────
-
+# ── Plugins ───────────────────────────────────────────────────────────
 @app.get("/api/plugins")
 def get_plugins():
     from core.plugin_loader import PluginLoader
     return {
-        "active": PluginLoader.get_all_plugins(),
+        "active":  PluginLoader.get_all_plugins(),
         "pending": PluginLoader.get_pending_plugins()
     }
+
+@app.post("/api/plugins/design")
+async def design_plugin(req: PluginDesignRequest):
+    from core.plugin_designer import PluginDesigner
+    designer = PluginDesigner(hermes_agents.manager_llm)
+    try:
+        result = designer.design(req.description)
+        await broadcast({"type": "plugin_designed", "name": result["plugin_name"]})
+        return result
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/api/plugins/{name}/approve")
 async def approve_plugin(name: str):
     from core.plugin_loader import PluginLoader
-    success = PluginLoader.approve_plugin(name)
-    await broadcast({"type": "plugin_approved", "name": name})
-    return {"ok": success}
+    success, message = PluginLoader.approve_plugin(name)
+    if success:
+        await broadcast({"type": "plugin_approved", "name": name})
+        return {"ok": True, "message": message}
+    return {"ok": False, "error": message}
 
 @app.post("/api/plugins/{name}/reject")
 async def reject_plugin(name: str):
@@ -316,34 +346,15 @@ async def disable_plugin(name: str):
     success = PluginLoader.disable_plugin(name)
     return {"ok": success}
 
-# ── Plugin Designer endpoint ──────────────────────────────────────────
+@app.post("/api/plugins/{name}/restore")
+async def restore_plugin(name: str):
+    from core.plugin_loader import PluginLoader
+    success = PluginLoader.restore_plugin(name)
+    if success:
+        await broadcast({"type": "plugin_restored", "name": name})
+    return {"ok": success}
 
-class PluginDesignRequest(BaseModel):
-    description: str
-
-@app.post("/api/plugins/design")
-async def design_plugin(req: PluginDesignRequest):
-    from core.plugin_designer import PluginDesigner
-    designer = PluginDesigner(hermes_agents.manager_llm)
-    try:
-        result = designer.design(req.description)
-        await broadcast({"type": "plugin_designed", "name": result["plugin_name"]})
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-    
-    
-    
-    
-    # ── Conversation / Mission Log endpoints ─────────────────────────────
-
-class ConvMessageRequest(BaseModel):
-    conv_id: str
-    message: str
-
-class PinRequest(BaseModel):
-    pinned: bool
-
+# ── Conversations ─────────────────────────────────────────────────────
 @app.post("/api/conversations")
 def create_conversation():
     return conv_store.create()
@@ -369,69 +380,106 @@ def pin_conversation(conv_id: str, req: PinRequest):
     conv_store.pin(conv_id, req.pinned)
     return {"ok": True}
 
+# ── Chat ──────────────────────────────────────────────────────────────
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    try:
+        from core.autocorrect import autocorrect
+        corrected_msg, corrections = autocorrect(req.message)
+        raw_plan = planner.create_plan(corrected_msg)
+        plan     = critic.review_plan(raw_plan)
+        result   = executor.execute_plan(plan)
+        await broadcast({"type": "chat_result", "message": req.message, "result": result})
+        return {
+            "plan": plan, "result": result,
+            "corrections": corrections,
+            "corrected_input": corrected_msg if corrections else None
+        }
+    except Exception as e:
+        return {"plan": {}, "result": f"[ERROR] {str(e)}"}
+
 @app.post("/api/chat/mission")
 async def chat_mission(req: ConvMessageRequest):
-    """Chat endpoint that saves to conversation history."""
     try:
-        # Save user message
-        # Autocorrect user input
         from core.autocorrect import autocorrect
         corrected_msg, corrections = autocorrect(req.message)
 
-        # Save original user message
         conv_store.add_message(req.conv_id, "user", req.message)
-        
-        # Check for plugin designer request
+
+        # Plugin designer shortcut
         msg_lower = corrected_msg.lower()
-        if any(phrase in msg_lower for phrase in ["design a plugin", "create a plugin", "add a plugin", "make a plugin", "build a plugin"]):
+        if any(p in msg_lower for p in ["design a plugin","create a plugin","add a plugin","make a plugin","build a plugin"]):
             from core.plugin_designer import PluginDesigner
             designer = PluginDesigner(hermes_agents.manager_llm)
             try:
                 result_data = designer.design(corrected_msg)
                 result = f"Plugin '{result_data['plugin_name']}' designed! Go to the Plugins tab to review the spec, code, and approve it."
-                conv_store.add_message(req.conv_id, "user", req.message)
                 conv_store.add_message(req.conv_id, "hermes", result, ["plugin_designer"])
                 await broadcast({"type": "plugin_designed", "name": result_data["plugin_name"]})
                 return {"plan": {}, "result": result, "tools_used": ["plugin_designer"], "corrections": corrections}
             except Exception as e:
                 result = f"[ERROR] Plugin design failed: {e}"
-                conv_store.add_message(req.conv_id, "user", req.message)
                 conv_store.add_message(req.conv_id, "hermes", result, [])
                 return {"plan": {}, "result": result, "tools_used": [], "corrections": corrections}
 
-        # Run through Hermes with corrected input
         raw_plan = planner.create_plan(corrected_msg)
-        plan = critic.review_plan(raw_plan)
-        result = executor.execute_plan(plan)
+        plan     = critic.review_plan(raw_plan)
 
-        # Extract tools used from plan
-        tools_used = [
-            step.get("tool") for step in plan.get("steps", [])
-            if step.get("tool")
-        ]
+        # ── Frontend approval for sensitive actions ────────────────
+        APPROVAL_TOOLS = {"fs_write","fs_delete","gmail_send","calendar_create","telegram_send","github_create_issue"}
+        for step in plan.get("steps", []):
+            tool = step.get("tool", "")
+            if tool not in APPROVAL_TOOLS:
+                continue
 
-        # Save assistant response
+            approval_id = str(uuid.uuid4())[:8]
+
+            # 1. Register in queue FIRST
+            event = asyncio.Event()
+            approval_queue[approval_id] = {
+                "id": approval_id, "action": tool, "tool": tool,
+                "details": {"description": step.get("description",""), "conv_id": req.conv_id},
+                "approved": None, "event": event
+            }
+
+            # 2. Broadcast to frontend
+            await broadcast({
+                "type": "approval_required",
+                "id": approval_id, "action": tool, "tool": tool,
+                "details": {"description": step.get("description",""), "conv_id": req.conv_id}
+            })
+            print(f"[APPROVAL] Sent approval_required for {tool} — ID: {approval_id}")
+
+            # 3. Wait for user response (60s timeout)
+            try:
+                await asyncio.wait_for(event.wait(), timeout=60.0)
+                approved = approval_queue[approval_id]["approved"]
+                print(f"[APPROVAL] Result for {approval_id}: {approved}")
+            except asyncio.TimeoutError:
+                print(f"[APPROVAL] TIMEOUT for {approval_id}")
+                approved = False
+            finally:
+                approval_queue.pop(approval_id, None)
+
+            if not approved:
+                step["tool"] = None
+                step["description"] = f"[REJECTED] User denied {tool}"
+
+        result     = executor.execute_plan(plan)
+        tools_used = [s.get("tool") for s in plan.get("steps", []) if s.get("tool")]
+
         conv_store.add_message(req.conv_id, "hermes", result, tools_used)
 
-        # Auto-generate title after 2nd message
         conv = conv_store.get(req.conv_id)
         if conv and len(conv["messages"]) == 2:
-            # Generate title from first exchange
-            title = _generate_title(req.message, result, tools_used)
-            conv_store.update_title(req.conv_id, title)
+            conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used))
             conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result))
 
-        await broadcast({
-            "type": "conversation_updated",
-            "conv_id": req.conv_id,
-            "tools": tools_used
-        })
+        await broadcast({"type": "conversation_updated", "conv_id": req.conv_id, "tools": tools_used})
 
         return {
-            "plan": plan,
-            "result": result,
-            "tools_used": tools_used,
-            "corrections": corrections,
+            "plan": plan, "result": result,
+            "tools_used": tools_used, "corrections": corrections,
             "corrected_input": corrected_msg if corrections else None
         }
 
@@ -440,73 +488,19 @@ async def chat_mission(req: ConvMessageRequest):
 
 
 def _generate_title(user_msg: str, result: str, tools: list) -> str:
-    """Generate a mission title from the conversation."""
     if not tools:
         return user_msg[:50] + ("..." if len(user_msg) > 50 else "")
-
-    tool_labels = {
-        "gmail_list": "Checked emails",
-        "gmail_send": "Sent email",
-        "gmail_read": "Read email",
-        "calendar_today": "Checked calendar",
-        "calendar_create": "Created event",
-        "github_repos": "Browsed GitHub",
-        "github_commits": "Read commits",
-        "browser_go": "Browsed web",
-        "browser_read": "Read webpage",
-        "fs_list": "Listed files",
-        "fs_write": "Wrote file",
-        "fs_delete": "Deleted file",
-        "search_web": "Searched web",
-        "weather_current": "Checked weather",
-        "weather_forecast": "Got forecast",
-        "telegram_send": "Sent Telegram",
+    labels = {
+        "gmail_list":"Checked emails","gmail_send":"Sent email",
+        "calendar_today":"Checked calendar","calendar_create":"Created event",
+        "github_repos":"Browsed GitHub","browser_go":"Browsed web",
+        "fs_list":"Listed files","fs_write":"Wrote file",
+        "search_web":"Searched web","weather_current":"Checked weather",
+        "telegram_send":"Sent Telegram",
     }
-
-    labels = [tool_labels.get(t, t) for t in tools[:3]]
-    return " + ".join(labels) if labels else user_msg[:50]
-
+    return " + ".join([labels.get(t,t) for t in tools[:3]]) or user_msg[:50]
 
 def _generate_summary(tools: list, result: str) -> str:
     if not tools:
         return result[:100]
     return f"Used {', '.join(tools[:3])}. {result[:80]}..."
-
-@app.post("/api/plugins/{name}/approve")
-async def approve_plugin(name: str):
-    from core.plugin_loader import PluginLoader
-    success, message = PluginLoader.approve_plugin(name)
-    if success:
-        await broadcast({"type": "plugin_approved", "name": name})
-        return {"ok": True, "message": message}
-    else:
-        return {"ok": False, "error": message}
-    
-@app.post("/api/plugins/{name}/restore")
-async def restore_plugin(name: str):
-    from core.plugin_loader import PluginLoader
-    success = PluginLoader.restore_plugin(name)
-    if success:
-        await broadcast({"type": "plugin_restored", "name": name})
-    return {"ok": success}
-
-
-
-
-
-import asyncio
-pending_approvals: dict = {}
-
-class ApprovalResponse(BaseModel):
-    approved: bool
-
-@app.get("/api/approvals/pending")
-def get_pending_approvals():
-    return list(pending_approvals.keys())
-
-@app.post("/api/approvals/{approval_id}/respond")
-async def respond_approval(approval_id: str, req: ApprovalResponse):
-    if approval_id in pending_approvals:
-        pending_approvals[approval_id]["approved"] = req.approved
-        pending_approvals[approval_id]["event"].set()
-    return {"ok": True}

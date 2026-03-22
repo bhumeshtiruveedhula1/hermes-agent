@@ -79,5 +79,106 @@
     "created_at": "2026-03-21T17:13:03.693766",
     "updated_at": "2026-03-21T17:15:17.407220",
     "message_count": 4
+  },
+  {
+    "id": "conv_20260321_174616_30ca02",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-03-21T17:46:16.801970",
+    "updated_at": "2026-03-21T17:46:17.104270",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260322_020231_7678b0",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: modal_test.txt...",
+    "tools_used": [
+      "fs_write",
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-22T02:02:31.641830",
+    "updated_at": "2026-03-22T02:04:06.941795",
+    "message_count": 4
+  },
+  {
+    "id": "conv_20260322_030546_517ba0",
+    "title": "write \"hello\" to /documents/notes.txt",
+    "summary": "It seems you're encountering a permission issue with file system operations. Here's how to troublesh",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-03-22T03:05:46.329920",
+    "updated_at": "2026-03-22T03:07:13.555931",
+    "message_count": 2
+  },
+  {
+    "id": "conv_20260322_031310_a6a713",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: hello...",
+    "tools_used": [
+      "fs_write"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-22T03:13:10.679680",
+    "updated_at": "2026-03-22T03:13:29.425449",
+    "message_count": 2
+  },
+  {
+    "id": "conv_20260322_031901_7be0f1",
+    "title": "write \"hello world\" to /documents/notes.txt",
+    "summary": "It seems you're encountering a permission issue with file system operations. Here's how to troublesh",
+    "tools_used": [
+      "fs_write"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-22T03:19:01.146601",
+    "updated_at": "2026-03-22T03:20:51.823887",
+    "message_count": 4
+  },
+  {
+    "id": "conv_20260322_032359_31f41b",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-03-22T03:23:59.353046",
+    "updated_at": "2026-03-22T03:23:59.478491",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260322_033258_9614a3",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-03-22T03:32:58.851062",
+    "updated_at": "2026-03-22T03:32:58.981284",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260322_034237_9f764c",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: notes.txt\n\n[BLOCKED] Unknown tool: fs_write...",
+    "tools_used": [
+      "fs_write"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-22T03:42:37.974517",
+    "updated_at": "2026-03-22T03:50:17.336097",
+    "message_count": 2
+  },
+  {
+    "id": "conv_20260322_042333_a10765",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: notes.txt...",
+    "tools_used": [
+      "fs_write"
+    ],
+    "pinned": false,
+    "created_at": "2026-03-22T04:23:33.419493",
+    "updated_at": "2026-03-22T04:23:51.470590",
+    "message_count": 2
   }
 ]
