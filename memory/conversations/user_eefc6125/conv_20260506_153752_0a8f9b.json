@@ -1,0 +1,37 @@
+{
+  "id": "conv_20260506_153752_0a8f9b",
+  "title": "hi how are you",
+  "created_at": "2026-05-06T15:37:52.694664",
+  "updated_at": "2026-05-06T15:40:30.856205",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "[ERROR] Weather error: Expecting value: line 1 column 1 (char 0)",
+      "ts": "2026-05-06T15:38:07.995751",
+      "tools": [
+        "weather_current"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "Ah, a classic pun! The humor lies in the double meaning of \"make up.\" Atoms are the fundamental building blocks of all matter, so they *literally* make up everything. But the joke also plays on the phrase \"make up\" as in fabricating stories\u2014scientists might distrust atoms because they\u2019re always \"making up\" the structure of the universe! \ud83d\ude04  \n\nIn reality, atoms are the basic units of elements, and their interactions explain everything from water to diamonds. It\u2019s a clever way to highlight both their foundational role and the playful ambiguity of language. Want to dive deeper into how atoms work?",
+      "ts": "2026-05-06T15:38:54.673686",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "SOURCE: Kimi Antonelli wins Formula 1 Miami Grand Prix, extending his ...\nCONTENT: \n                    Kimi Antonelli won the Formula 1 Miami Grand Prix on Sunday, securing his third victory in a row and increasing his lead in the world championship.\n                  \nLINK: https://www.nbcnews.com/sports/formula-1/kimi-antonelli-wins-formula-1-miami-grand-prix-rcna342376\n\nSOURCE: LATEST F1 NEWS - Formula 1\nCONTENT: \n                    Enter the world of Formula 1. Your go-to source for the latest F1 news, video highlights, GP results, live timing, in-depth analysis and expert commentary.\n                  \nLINK: https://www.formula1.com/en/latest?page=2\n\nSOURCE: Formula 1 News | Latest Formula 1 Headlines and Results | Reuters\nCONTENT: \n                    Find latest Formula 1 news from every corner of the globe at Reuters.com, your online source for breaking international news coverage.\n                  \nLINK: https://www.reuters.com/sports/formula1/\n\nSOURCE: Formula 1 News | Latest F1 Updates & Analysis\nCONTENT: \n                    The latest Formula 1 news, team updates and expert analysis from the FIA F1 World Championship. Fast and fully focused on F1.\n                  \nLINK: https://racingnewstoday.com/news/\n\nSOURCE: The Race - Independent Formula 1, MotoGP, Formula E & Motorsport ...\nCONTENT: \n                    Stay ahead with The Race - the world's largest independent motorsport channel. Get the latest news, expert analysis, videos and podcasts across F1, MotoGP, Formula E and more.\n                  \nLINK: http://the-race.com/",
+      "ts": "2026-05-06T15:40:30.856187",
+      "tools": [
+        "search_web"
+      ]
+    }
+  ],
+  "tools_used": [
+    "weather_current",
+    "search_web"
+  ],
+  "summary": "Ah, a classic pun! The humor lies in the double meaning of \"make up.\" Atoms are the fundamental buil",
+  "pinned": false,
+  "user_id": "user_eefc6125"
+}

@@ -50,8 +50,19 @@ export default function Chat() {
   // Phase 10 Task 4 — screenshot panel
   const [liveScreenshot, setLiveScreenshot] = useState(null)
   const [showPanel, setShowPanel] = useState(false)
+  // Phase 12 — Voice I/O
+  const [isListening, setIsListening]     = useState(false)   // mic active
+  const [voiceOn, setVoiceOn]             = useState(false)   // TTS enabled
+  const [speakingIdx, setSpeakingIdx]     = useState(null)    // which msg is "speaking"
 
   useEffect(() => { loadConvList() }, [])
+
+  // Phase 12: fetch voice status on mount
+  useEffect(() => {
+    axios.get("http://localhost:8000/api/voice/status")
+      .then(r => setVoiceOn(r.data.voice_enabled))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -138,8 +149,15 @@ export default function Chat() {
 
       setMessages(prev => [...prev, {
         role: "hermes", text: cleanResult,
-        plan, tools: tools_used || []
+        plan, tools: tools_used || [],
+        speaking: voiceOn   // Phase 12: flag for speaking indicator
       }])
+      // Phase 12: show SPEAKING... for 3s if voice enabled
+      if (voiceOn) {
+        const idx = Date.now()
+        setSpeakingIdx(idx)
+        setTimeout(() => setSpeakingIdx(null), 3000)
+      }
       loadConvList()
     } catch {
       setMessages(prev => [...prev, {
@@ -149,10 +167,90 @@ export default function Chat() {
     setLoading(false)
   }
 
+  // Phase 12 Task 3 — Voice output toggle
+  const toggleVoice = async () => {
+    const next = !voiceOn
+    try {
+      await axios.post("http://localhost:8000/api/voice/toggle", { enabled: next })
+      setVoiceOn(next)
+    } catch { /* backend unreachable — toggle locally anyway */ setVoiceOn(next) }
+  }
+
+  // Phase 12 Task 2 — Microphone / Web Speech API
+  // Auto-sends after recognition so user doesn't need to manually press Send.
+  // Uses a direct call to the send logic rather than setInput to avoid stale closure.
+  const startListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      alert("Voice input requires Chrome or Edge.")
+      return
+    }
+    const recognition = new SR()
+    recognition.lang            = "en-US"
+    recognition.interimResults  = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.start()
+    recognition.onresult = async (e) => {
+      const transcript = e.results[0][0].transcript
+      setInput(transcript)        // show in input box
+      setIsListening(false)
+      // Auto-send: build the send payload directly instead of relying on state
+      if (!transcript.trim()) return
+      let conv = activeConv
+      if (!conv) {
+        const res = await axios.post("http://localhost:8000/api/conversations")
+        conv = res.data
+        setActiveConv(conv)
+      }
+      setMessages(prev => [...prev, { role: "you", text: transcript }])
+      setLoading(true)
+      setInput("")  // clear input now
+      try {
+        const res = await axios.post("http://localhost:8000/api/chat/mission", {
+          conv_id: conv.id,
+          message: transcript
+        })
+        const { plan, result, tools_used, corrections } = res.data
+        if (corrections?.length > 0) {
+          setMessages(prev => [...prev, { role: "system", text: `✏️ Autocorrected: ${corrections.join(", ")}` }])
+        }
+        let cleanResult = result
+        if (result?.includes("[SCREENSHOT_B64]")) {
+          setLiveScreenshot(result.replace("[SCREENSHOT_B64]", "").trim())
+          setShowPanel(true)
+          cleanResult = "[Screenshot captured — see Browser View panel →]"
+        }
+        setMessages(prev => [...prev, {
+          role: "hermes", text: cleanResult, plan, tools: tools_used || [], speaking: voiceOn
+        }])
+        if (voiceOn) { const idx = Date.now(); setSpeakingIdx(idx); setTimeout(() => setSpeakingIdx(null), 3000) }
+        loadConvList()
+      } catch {
+        setMessages(prev => [...prev, { role: "hermes", text: "[ERROR] Could not reach Hermes backend." }])
+      }
+      setLoading(false)
+    }
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend   = () => setIsListening(false)
+  }
+
   const pinnedConvs = convList.filter(c => c.pinned)
   const unpinnedConvs = convList.filter(c => !c.pinned)
 
   return (
+    <>
+    {/* Phase 12: inject keyframes for waveform + mic pulse */}
+    <style>{`
+      @keyframes wave {
+        from { transform: scaleY(0.4); }
+        to   { transform: scaleY(1.0); }
+      }
+      @keyframes micPulse {
+        0%,100% { box-shadow: 0 0 0 0 rgba(255,85,85,0.4); }
+        50%      { box-shadow: 0 0 0 8px rgba(255,85,85,0); }
+      }
+    `}</style>
     <div style={{display:"flex", gap:0, height:"600px", border:"1px solid var(--border)", position:"relative"}}>
 
       {/* SIDEBAR */}
@@ -237,6 +335,19 @@ export default function Chat() {
             <div style={{display:"flex", flexWrap:"wrap", gap:4}}>
               {(activeConv.tools_used || []).map(t => <ToolBadge key={t} tool={t} />)}
             </div>
+            {/* Phase 12 Task 3 — Voice output toggle */}
+            <button
+              id="voice-toggle-btn"
+              onClick={toggleVoice}
+              title={voiceOn ? "Voice ON — click to mute" : "Voice OFF — click to enable"}
+              style={{
+                background:"none", border:"none", cursor:"pointer",
+                fontSize:18, lineHeight:1, padding:"2px 6px",
+                color: voiceOn ? "var(--accent)" : "var(--dim)",
+                filter: voiceOn ? "drop-shadow(0 0 6px var(--accent))" : "none",
+                transition:"all .2s"
+              }}
+            >{voiceOn ? "🔊" : "🔇"}</button>
           </div>
         )}
 
@@ -244,8 +355,16 @@ export default function Chat() {
           scrollbarWidth:"thin", scrollbarColor:"var(--border) transparent"}}>
           {messages.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role === "you" ? "you" : m.role === "system" ? "system" : "hermes"}`}>
-              <div className="chat-who">
+              <div className="chat-who" style={{display:"flex", alignItems:"center", gap:8}}>
                 {m.role === "you" ? "You" : m.role === "system" ? "System" : "Hermes"}
+                {/* Phase 12 Task 4 — SPEAKING indicator on latest hermes message */}
+                {m.role === "hermes" && m.speaking && speakingIdx && i === messages.length - 1 && (
+                  <span style={{
+                    fontFamily:"Space Mono,monospace", fontSize:7,
+                    letterSpacing:2, color:"var(--accent)",
+                    animation:"pulse 1.2s ease-in-out infinite"
+                  }}>SPEAKING</span>
+                )}
               </div>
               <div className="chat-text">
                 {m.text && m.text.startsWith("[SCREENSHOT_B64]")
@@ -283,14 +402,66 @@ export default function Chat() {
         </div>
 
         <div className="chat-footer">
+          {/* Phase 12 Task 4 — Waveform / LISTENING indicator */}
+          {isListening && (
+            <div style={{
+              position:"absolute", bottom:56, left:280, right:0,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              gap:10, padding:"10px 0",
+              background:"linear-gradient(0deg,rgba(5,5,5,0.95),transparent)",
+              pointerEvents:"none",
+            }}>
+              <div style={{display:"flex", alignItems:"flex-end", gap:3, height:24}}>
+                {[0,1,2,3,4].map(i => (
+                  <div key={i} style={{
+                    width:3, background:"var(--accent)",
+                    borderRadius:2,
+                    animation:`wave 0.8s ease-in-out ${i*0.1}s infinite alternate`,
+                    height: [14,22,18,24,16][i],
+                  }} />
+                ))}
+              </div>
+              <span style={{
+                fontFamily:"Space Mono,monospace", fontSize:9,
+                letterSpacing:3, color:"var(--accent)", textTransform:"uppercase"
+              }}>Listening...</span>
+            </div>
+          )}
           <input
             className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
-            placeholder={activeConv ? "Continue mission..." : "Start a new mission..."}
+            placeholder={isListening ? "Listening..." : activeConv ? "Continue mission..." : "Start a new mission..."}
             disabled={loading}
           />
+          {/* Phase 12 Task 2 — Microphone button: flat, sharp, matches Hermes theme */}
+          <button
+            id="mic-btn"
+            onClick={startListening}
+            disabled={loading || isListening}
+            title={isListening ? "Listening..." : "Voice input"}
+            style={{
+              padding: "0 16px",
+              background: isListening ? "rgba(255,85,85,0.12)" : "transparent",
+              border: "none",
+              borderRight: "1px solid var(--border2)",
+              color: isListening ? "#ff5555" : "var(--dim)",
+              cursor: loading || isListening ? "not-allowed" : "pointer",
+              fontFamily: "Space Mono, monospace",
+              fontSize: 9,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              animation: isListening ? "micPulse 1s ease-in-out infinite" : "none",
+              transition: "all .2s",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <span style={{fontSize:13}}>🎤</span>
+            {isListening ? "MIC" : ""}
+          </button>
           <button className="chat-send" onClick={send} disabled={loading}>
             {loading ? "..." : "Send"}
           </button>
@@ -354,6 +525,7 @@ export default function Chat() {
         </button>
       )}
     </div>
+    </>
   )
 }
 

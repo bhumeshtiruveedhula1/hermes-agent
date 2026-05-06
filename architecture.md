@@ -1,4 +1,4 @@
-# Hermes v1 — Agent Architecture
+   # Hermes v1 — Agent Architecture
 
 Hermes is a local-first, deterministic AI agent system built around **planning, memory, and disciplined execution**.
 This project focuses on *system intelligence*, not model tricks.

@@ -1,0 +1,49 @@
+[
+  {
+    "id": "conv_20260506_142512_facb99",
+    "title": "hey hi",
+    "summary": "Hello! I'm Hermes, here to assist with any tasks or questions you have. How can I help you today?",
+    "tools_used": [
+      "speak_out_loud"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T14:25:12.783080",
+    "updated_at": "2026-05-06T15:15:21.399328",
+    "message_count": 5
+  },
+  {
+    "id": "conv_20260506_153752_0a8f9b",
+    "title": "hi how are you",
+    "summary": "Ah, a classic pun! The humor lies in the double meaning of \"make up.\" Atoms are the fundamental buil",
+    "tools_used": [
+      "weather_current",
+      "search_web"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T15:37:52.694664",
+    "updated_at": "2026-05-06T15:40:30.856205",
+    "message_count": 3
+  },
+  {
+    "id": "conv_20260506_154140_3f97ea",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-05-06T15:41:40.642354",
+    "updated_at": "2026-05-06T15:41:40.642362",
+    "message_count": 0
+  },
+  {
+    "id": "conv_20260506_154157_dc5366",
+    "title": "Searched web",
+    "summary": "Used search_web. SOURCE: Google News - India - Latest\nCONTENT: \n                    Stay informed...",
+    "tools_used": [
+      "search_web"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T15:41:57.436224",
+    "updated_at": "2026-05-06T15:43:20.843843",
+    "message_count": 2
+  }
+]

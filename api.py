@@ -161,6 +161,12 @@ class CreateUserRequest(BaseModel):
 def get_user_id(request: Request) -> str:
     return request.headers.get("X-User-Id", "user_1")
 
+# Phase 12 — Voice output state (default off)
+voice_enabled: bool = False
+
+class VoiceSettingRequest(BaseModel):
+    enabled: bool
+
 # ── Status ────────────────────────────────────────────────────────────
 @app.get("/api/status")
 def get_status():
@@ -337,6 +343,18 @@ async def set_browser_mode(req: BrowserModeRequest):
     BrowserSession.set_headless(req.headless)
     await broadcast({"type": "browser_mode_changed", "headless": req.headless})
     return {"headless": req.headless, "ok": True}
+
+# ── Voice (Phase 12) ──────────────────────────────────────────────────
+@app.get("/api/voice/status")
+def voice_status():
+    return {"voice_enabled": voice_enabled}
+
+@app.post("/api/voice/toggle")
+async def toggle_voice(req: VoiceSettingRequest):
+    global voice_enabled
+    voice_enabled = req.enabled
+    await broadcast({"type": "voice_changed", "enabled": req.enabled})
+    return {"voice_enabled": voice_enabled}
 
 # ── Approvals ─────────────────────────────────────────────────────────
 @app.get("/api/approvals/pending")
@@ -566,6 +584,14 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
         executor.current_user_id = user_id   # Phase 11: route fs ops to correct sandbox
         result     = executor.execute_plan(plan)
         tools_used = [s.get("tool") for s in plan.get("steps", []) if s.get("tool")]
+
+        # Phase 12 — Voice output (non-blocking, never fatal)
+        if voice_enabled and result and not result.startswith("[ERROR]"):
+            try:
+                from core.voice.tts import speak
+                speak(result)
+            except Exception:
+                pass  # TTS failure must never break the response
 
         conv_store.add_message(req.conv_id, "hermes", result, tools_used, user_id=user_id)
 

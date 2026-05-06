@@ -1,0 +1,30 @@
+{
+  "id": "conv_20260506_154157_dc5366",
+  "title": "Searched web",
+  "created_at": "2026-05-06T15:41:57.436224",
+  "updated_at": "2026-05-06T15:43:20.843843",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "SOURCE: Hindustan Times: Breaking News, Latest News, India News, World News ...\nCONTENT: \n                    Hindustan Times: Stay updated with Hindustan Times for the top India news, world events, and breaking stories. Get real-time updates on politics, wars, live cricket scores, entertainment news, and ...\n                  \nLINK: https://www.hindustantimes.com/\n\nSOURCE: Top News, Top News Today, Top Stories | Hindustan Times\nCONTENT: \n                    Top News - Find top India News, headlines, top news stories from cities and World, top entertainment news, top tech news, top news from education, business, and sports at Hindustan Times\n                  \nLINK: https://www.hindustantimes.com/top-news\n\nSOURCE: India News | Today's latest updates and breaking news from India, Live ...\nCONTENT: \n                    India News | Latest India News | Read latest and breaking news from India. Today's top India news headlines, news on Indian politics, elections, government, business, technology, and Bollywood.\n                  \nLINK: https://www.ndtv.com/india\n\nSOURCE: India News | Today's Top Stories | Reuters\nCONTENT: \n                    Reuters.com is your online source for the latest India news stories and current events, ensuring our readers up to date with any breaking news developments\n                  \nLINK: https://www.reuters.com/world/india/\n\nSOURCE: Today's Top News Stories, Latest News Today - NDTV.com\nCONTENT: \n                    Top News Stories of the day, Latest News Headlines, News Specials, Breaking News and Latest India News, World current affairs & Political News all around the clock at NDTV.com.\n                  \nLINK: https://www.ndtv.com/top-stories",
+      "ts": "2026-05-06T15:42:11.812783",
+      "tools": [
+        "search_web"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "SOURCE: Google News - India - Latest\nCONTENT: \n                    Stay informed about India's latest news and updates, covering politics, economy, culture, and more on Google News.\n                  \nLINK: https://news.google.com/topics/CAAqJQgKIh9DQkFTRVFvSUwyMHZNRE55YXpBU0JXVnVMVWRDS0FBUAE\n\nSOURCE: India News | Today's latest updates and breaking news from India, Live ...\nCONTENT: \n                    Get the latest updates and breaking news from India, including politics, elections, government, business, technology, and Bollywood.\n                  \nLINK: https://www.ndtv.com/india\n\nSOURCE: India News | Today's Top Stories | Reuters\nCONTENT: \n                    Reuters.com is your online source for the latest India news stories and current events, ensuring our readers up to date with any breaking news developments\n                  \nLINK: https://www.reuters.com/world/india/\n\nSOURCE: Hindustan Times: Breaking News, Latest News, India News, World News ...\nCONTENT: \n                    Hindustan Times: Stay updated with Hindustan Times for the top India news, world events, and breaking stories. Get real-time updates on politics, wars, live cricket scores, entertainment news, and ...\n                  \nLINK: https://www.hindustantimes.com/\n\nSOURCE: Latest Breaking News Today - Top Headlines & Live Updates | The ...\nCONTENT: \n                    Stay updated with the latest breaking news, live updates, photos, videos and top trending stories from India and around the world across politics, economy, sports and more on The Economic Times.\n                  \nLINK: https://economictimes.indiatimes.com/news",
+      "ts": "2026-05-06T15:43:20.842772",
+      "tools": [
+        "search_web"
+      ]
+    }
+  ],
+  "tools_used": [
+    "search_web"
+  ],
+  "summary": "Used search_web. SOURCE: Google News - India - Latest\nCONTENT: \n                    Stay informed...",
+  "pinned": false,
+  "user_id": "user_eefc6125"
+}
