@@ -1,0 +1,48 @@
+{
+  "id": "conv_20260506_113933_122d85",
+  "title": "Wrote file",
+  "created_at": "2026-05-06T11:39:33.269665",
+  "updated_at": "2026-05-06T11:41:18.543892",
+  "messages": [
+    {
+      "role": "user",
+      "text": "write \"hello world\" to /documents/test.txt",
+      "ts": "2026-05-06T11:39:33.405367",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: hello world",
+      "ts": "2026-05-06T11:39:51.532038",
+      "tools": [
+        "fs_write"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "read /documents/test.txt",
+      "ts": "2026-05-06T11:39:54.829050",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] File not found",
+      "ts": "2026-05-06T11:40:06.345604",
+      "tools": [
+        "fs_read"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "read /documents/test.txt",
+      "ts": "2026-05-06T11:41:18.543882",
+      "tools": []
+    }
+  ],
+  "tools_used": [
+    "fs_write",
+    "fs_read"
+  ],
+  "summary": "Used fs_write. Written: hello world...",
+  "pinned": false
+}

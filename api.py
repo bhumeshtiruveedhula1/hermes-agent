@@ -1,4 +1,4 @@
-# api.py — Hermes FastAPI Backend
+# api.py — Hermes FastAPI Backend — Phase 9: Context Memory
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +24,7 @@ from core.audit.audit_logger import AuditLogger
 from core.filesystem.capability import FilesystemCapability
 from core.filesystem.sandbox import SandboxResolver
 from core.conversation_store import ConversationStore
+from core.context_manager import build_contextual_input   # ← Phase 9
 import tools_web
 import tools_email
 
@@ -147,7 +148,7 @@ def get_status():
     return {
         "online": True,
         "model": "qwen3:8b",
-        "phase": "8.5",
+        "phase": "9",
         "agents_total": len(agent_store.list_all()),
         "agents_enabled": len([a for a in agent_store.list_all() if a.enabled]),
         "ts": datetime.utcnow().isoformat(),
@@ -380,7 +381,7 @@ def pin_conversation(conv_id: str, req: PinRequest):
     conv_store.pin(conv_id, req.pinned)
     return {"ok": True}
 
-# ── Chat ──────────────────────────────────────────────────────────────
+# ── Chat (stateless — no context) ────────────────────────────────────
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     try:
@@ -398,12 +399,23 @@ async def chat(req: ChatRequest):
     except Exception as e:
         return {"plan": {}, "result": f"[ERROR] {str(e)}"}
 
+# ── Chat Mission (with context memory) ───────────────────────────────
 @app.post("/api/chat/mission")
 async def chat_mission(req: ConvMessageRequest):
     try:
         from core.autocorrect import autocorrect
         corrected_msg, corrections = autocorrect(req.message)
 
+        # ── Phase 9: Snapshot history BEFORE saving current message ──────
+        # BUG FIX (double-message): build context from history that does NOT
+        # include the current user turn yet. We pass this clean list to
+        # build_contextual_input which uses it directly (no [:-1] slice needed
+        # here since current message isn't in the list yet).
+        conv_before = conv_store.get(req.conv_id)
+        conv_messages_before = conv_before.get("messages", []) if conv_before else []
+        contextual_input = build_contextual_input(corrected_msg, conv_messages_before)
+
+        # Now save user message (AFTER context snapshot)
         conv_store.add_message(req.conv_id, "user", req.message)
 
         # Plugin designer shortcut
@@ -422,7 +434,38 @@ async def chat_mission(req: ConvMessageRequest):
                 conv_store.add_message(req.conv_id, "hermes", result, [])
                 return {"plan": {}, "result": result, "tools_used": [], "corrections": corrections}
 
-        raw_plan = planner.create_plan(corrected_msg)
+        # ── Recall shortcut — deterministic memory answer ─────────────────
+        # Qwen3:8B cannot reliably pick tool=null for recall questions via
+        # prompt alone. We intercept deterministically BEFORE calling the
+        # planner so the model never gets a chance to call the wrong tool.
+        if _is_recall_question(corrected_msg) and conv_messages_before:
+            last_result, _ = _get_last_hermes_result(conv_messages_before)
+            if last_result:
+                from langchain_core.messages import SystemMessage as SM, HumanMessage as HM
+                recall_resp = hermes_agents.manager_llm.invoke([
+                    SM(content=(
+                        "You are Hermes, a helpful AI assistant. "
+                        "Answer the user's question using ONLY the context provided below. "
+                        "Be concise and direct. Do not mention file paths unless the user asks. "
+                        "Do not call any tools. Do not make up information outside the context."
+                    )),
+                    HM(content=f"Previous result:\n{last_result}\n\nUser: {corrected_msg}")
+                ])
+                result     = recall_resp.content
+                tools_used = []
+                conv_store.add_message(req.conv_id, "hermes", result, tools_used)
+                conv_obj = conv_store.get(req.conv_id)
+                if conv_obj and len(conv_obj["messages"]) == 2:
+                    conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used))
+                    conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result))
+                await broadcast({"type": "conversation_updated", "conv_id": req.conv_id, "tools": tools_used})
+                return {
+                    "plan": {"goal": "Answer from memory", "steps": []},
+                    "result": result, "tools_used": tools_used, "corrections": corrections
+                }
+
+        # Plan using contextual input (has history prepended)
+        raw_plan = planner.create_plan(contextual_input)
         plan     = critic.review_plan(raw_plan)
 
         # ── Frontend approval for sensitive actions ────────────────
@@ -434,7 +477,6 @@ async def chat_mission(req: ConvMessageRequest):
 
             approval_id = str(uuid.uuid4())[:8]
 
-            # 1. Register in queue FIRST
             event = asyncio.Event()
             approval_queue[approval_id] = {
                 "id": approval_id, "action": tool, "tool": tool,
@@ -442,7 +484,6 @@ async def chat_mission(req: ConvMessageRequest):
                 "approved": None, "event": event
             }
 
-            # 2. Broadcast to frontend
             await broadcast({
                 "type": "approval_required",
                 "id": approval_id, "action": tool, "tool": tool,
@@ -450,7 +491,6 @@ async def chat_mission(req: ConvMessageRequest):
             })
             print(f"[APPROVAL] Sent approval_required for {tool} — ID: {approval_id}")
 
-            # 3. Wait for user response (60s timeout)
             try:
                 await asyncio.wait_for(event.wait(), timeout=60.0)
                 approved = approval_queue[approval_id]["approved"]
@@ -470,6 +510,7 @@ async def chat_mission(req: ConvMessageRequest):
 
         conv_store.add_message(req.conv_id, "hermes", result, tools_used)
 
+        # Auto-title after first exchange
         conv = conv_store.get(req.conv_id)
         if conv and len(conv["messages"]) == 2:
             conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used))
@@ -487,18 +528,64 @@ async def chat_mission(req: ConvMessageRequest):
         return {"plan": {}, "result": f"[ERROR] {str(e)}", "tools_used": []}
 
 
+# ── Recall Detection Helpers ──────────────────────────────────────────────────
+# Used by chat_mission to intercept memory questions before the planner runs.
+
+_RECALL_TRIGGERS = [
+    "what did you just read", "what did you read",
+    "what was that", "what was in",
+    "summarize it", "summarize that", "can you summarize", "give me a summary",
+    "what did it say", "what does it say",
+    "tell me what you found", "what did you find",
+    "what was the result", "what were the results",
+    "what did you write", "what was written",
+    "what did you just do", "what was in the file",
+]
+
+def _is_recall_question(msg: str) -> bool:
+    """
+    Returns True if the user's message is asking about a previous result
+    (not requesting new tool execution).
+    """
+    m = msg.lower().strip()
+    return any(trigger in m for trigger in _RECALL_TRIGGERS)
+
+
+def _get_last_hermes_result(conv_messages: list) -> tuple:
+    """
+    Scans conversation history in reverse and returns (text, tools) of the
+    most recent hermes message that is NOT a [BLOCKED] or [ERROR] response.
+    Returns (None, []) if nothing usable is found.
+    """
+    for msg in reversed(conv_messages):
+        if msg.get("role") == "hermes":
+            text  = msg.get("text", "")
+            tools = msg.get("tools", [])
+            # Skip failed/blocked responses — they contain no usable content
+            if text and not text.startswith("[BLOCKED]") and not text.startswith("[ERROR]"):
+                return text, tools
+    return None, []
+
 def _generate_title(user_msg: str, result: str, tools: list) -> str:
     if not tools:
         return user_msg[:50] + ("..." if len(user_msg) > 50 else "")
     labels = {
-        "gmail_list":"Checked emails","gmail_send":"Sent email",
-        "calendar_today":"Checked calendar","calendar_create":"Created event",
-        "github_repos":"Browsed GitHub","browser_go":"Browsed web",
-        "fs_list":"Listed files","fs_write":"Wrote file",
-        "search_web":"Searched web","weather_current":"Checked weather",
+        "gmail_list":"Checked emails",  "gmail_send":"Sent email",
+        "gmail_read":"Read email",       "gmail_search":"Searched emails",
+        "calendar_today":"Checked calendar", "calendar_create":"Created event",
+        "calendar_list":"Listed events",     "calendar_search":"Searched calendar",
+        "github_repos":"Browsed GitHub",     "github_repo_info":"Read repo",
+        "github_issues":"Checked issues",    "github_prs":"Checked PRs",
+        "github_commits":"Checked commits",  "github_create_issue":"Created issue",
+        "browser_go":"Browsed web",
+        "fs_list":"Listed files",   "fs_read":"Read file",
+        "fs_write":"Wrote file",    "fs_delete":"Deleted file",
+        "search_web":"Searched web",
+        "weather_current":"Checked weather",
         "telegram_send":"Sent Telegram",
+        "plugin_designer":"Designed plugin",
     }
-    return " + ".join([labels.get(t,t) for t in tools[:3]]) or user_msg[:50]
+    return " + ".join([labels.get(t, t) for t in tools[:3]]) or user_msg[:50]
 
 def _generate_summary(tools: list, result: str) -> str:
     if not tools:

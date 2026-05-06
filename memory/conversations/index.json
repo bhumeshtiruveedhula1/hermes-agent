@@ -180,5 +180,69 @@
     "created_at": "2026-03-22T04:23:33.419493",
     "updated_at": "2026-03-22T04:23:51.470590",
     "message_count": 2
+  },
+  {
+    "id": "conv_20260506_104924_bfc661",
+    "title": "fs_read",
+    "summary": "Used fs_read. Contents of /documents/notes.txt:\nhello world...",
+    "tools_used": [
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T10:49:24.668424",
+    "updated_at": "2026-05-06T11:00:08.637692",
+    "message_count": 7
+  },
+  {
+    "id": "conv_20260506_113933_122d85",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: hello world...",
+    "tools_used": [
+      "fs_write",
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T11:39:33.269665",
+    "updated_at": "2026-05-06T11:41:18.543892",
+    "message_count": 5
+  },
+  {
+    "id": "conv_20260506_114333_345a0f",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: hello world...",
+    "tools_used": [
+      "fs_write",
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T11:43:33.060101",
+    "updated_at": "2026-05-06T11:44:56.152623",
+    "message_count": 6
+  },
+  {
+    "id": "conv_20260506_115020_2fa204",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: test.txt...",
+    "tools_used": [
+      "fs_write",
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T11:50:20.662322",
+    "updated_at": "2026-05-06T11:52:17.722011",
+    "message_count": 8
+  },
+  {
+    "id": "conv_20260506_115808_e6b7f2",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: test.txt...",
+    "tools_used": [
+      "fs_write",
+      "fs_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T11:58:08.061751",
+    "updated_at": "2026-05-06T12:00:51.107000",
+    "message_count": 10
   }
 ]
