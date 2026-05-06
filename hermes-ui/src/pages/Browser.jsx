@@ -1,4 +1,4 @@
-/* hermes-ui/src/pages/Browser.jsx */
+/* hermes-ui/src/pages/Browser.jsx — Phase 10: Mode toggle */
 import { useState } from "react"
 import axios from "axios"
 
@@ -8,6 +8,7 @@ export default function Browser() {
   const [loading, setLoading] = useState(false)
   const [pageText, setPageText] = useState("")
   const [showText, setShowText] = useState(false)
+  const [isLive, setIsLive] = useState(true) // true = live (headless:false)
 
   const takeScreenshot = async () => {
     setLoading(true)
@@ -49,9 +50,40 @@ export default function Browser() {
     setPageText("")
   }
 
+  const toggleMode = async () => {
+    const nextLive = !isLive
+    try {
+      await axios.post("http://localhost:8000/api/browser/mode", { headless: !nextLive })
+      setIsLive(nextLive)
+    } catch {
+      alert("Could not switch browser mode")
+    }
+  }
+
   return (
     <div>
       <div className="section-label">Browser Control</div>
+
+      {/* MODE TOGGLE — Phase 10 Task 3 */}
+      <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:16}}>
+        <button
+          onClick={toggleMode}
+          style={{
+            padding:"8px 18px",
+            background: isLive ? "rgba(200,255,0,0.12)" : "rgba(255,255,255,0.05)",
+            border: `1px solid ${isLive ? "var(--accent)" : "var(--border)"}`,
+            color: isLive ? "var(--accent)" : "var(--dim)",
+            fontFamily:"Space Mono,monospace", fontSize:9,
+            letterSpacing:2, fontWeight:700, textTransform:"uppercase",
+            cursor:"pointer", transition:"all .2s"
+          }}
+        >
+          {isLive ? "● LIVE MODE" : "○ SILENT MODE"}
+        </button>
+        <span style={{fontFamily:"Space Mono,monospace", fontSize:9, color:"var(--dim)"}}>
+          {isLive ? "Browser window visible" : "Running headless (background)"}
+        </span>
+      </div>
 
       {/* URL BAR */}
       <div style={{display:"flex", gap:0, marginBottom:16}}>

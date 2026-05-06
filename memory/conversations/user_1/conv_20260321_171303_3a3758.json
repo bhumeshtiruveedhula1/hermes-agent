@@ -1,0 +1,42 @@
+{
+  "id": "conv_20260321_171303_3a3758",
+  "title": "Browsed web",
+  "created_at": "2026-03-21T17:13:03.693766",
+  "updated_at": "2026-03-21T17:15:17.407220",
+  "messages": [
+    {
+      "role": "user",
+      "text": "open https://youtube.com",
+      "ts": "2026-03-21T17:13:03.919855",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Navigated to: https://www.youtube.com/",
+      "ts": "2026-03-21T17:13:26.000615",
+      "tools": [
+        "browser_go"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "fill the search box with mr beast and press enter",
+      "ts": "2026-03-21T17:13:31.629412",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Filled 'input[name='search_query']' with 'value=mr beast)'\n\nHello! I'm Hermes, an autonomous AI agent designed to assist with a wide range of tasks. How can I help you today?",
+      "ts": "2026-03-21T17:15:17.407202",
+      "tools": [
+        "browser_fill"
+      ]
+    }
+  ],
+  "tools_used": [
+    "browser_go",
+    "browser_fill"
+  ],
+  "summary": "Used browser_go. Navigated to: https://www.youtube.com/...",
+  "pinned": false
+}

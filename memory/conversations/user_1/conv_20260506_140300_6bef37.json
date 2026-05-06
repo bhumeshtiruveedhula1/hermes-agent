@@ -1,0 +1,27 @@
+{
+  "id": "conv_20260506_140300_6bef37",
+  "title": "Wrote file",
+  "created_at": "2026-05-06T14:03:00.802669",
+  "updated_at": "2026-05-06T14:03:25.357316",
+  "messages": [
+    {
+      "role": "user",
+      "text": "create a file named alliswell and write content god is great",
+      "ts": "2026-05-06T14:03:01.443126",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: alliswell",
+      "ts": "2026-05-06T14:03:25.356138",
+      "tools": [
+        "fs_write"
+      ]
+    }
+  ],
+  "tools_used": [
+    "fs_write"
+  ],
+  "summary": "Used fs_write. Written: alliswell...",
+  "pinned": false
+}

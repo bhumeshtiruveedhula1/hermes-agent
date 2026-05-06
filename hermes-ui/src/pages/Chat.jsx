@@ -47,6 +47,9 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
   const bottomRef = useRef(null)
+  // Phase 10 Task 4 — screenshot panel
+  const [liveScreenshot, setLiveScreenshot] = useState(null)
+  const [showPanel, setShowPanel] = useState(false)
 
   useEffect(() => { loadConvList() }, [])
 
@@ -124,8 +127,17 @@ export default function Chat() {
         }])
       }
 
+      // Phase 10 Task 4: extract screenshot from result if present
+      let cleanResult = result
+      if (result && result.includes("[SCREENSHOT_B64]")) {
+        const b64 = result.replace("[SCREENSHOT_B64]", "").trim()
+        setLiveScreenshot(b64)
+        setShowPanel(true)
+        cleanResult = "[Screenshot captured — see Browser View panel →]"
+      }
+
       setMessages(prev => [...prev, {
-        role: "hermes", text: result,
+        role: "hermes", text: cleanResult,
         plan, tools: tools_used || []
       }])
       loadConvList()
@@ -141,7 +153,7 @@ export default function Chat() {
   const unpinnedConvs = convList.filter(c => !c.pinned)
 
   return (
-    <div style={{display:"flex", gap:0, height:"600px", border:"1px solid var(--border)"}}>
+    <div style={{display:"flex", gap:0, height:"600px", border:"1px solid var(--border)", position:"relative"}}>
 
       {/* SIDEBAR */}
       <div style={{
@@ -284,6 +296,63 @@ export default function Chat() {
           </button>
         </div>
       </div>
+
+      {/* Phase 10 Task 4 — Collapsible Browser View Panel */}
+      {showPanel && (
+        <div style={{
+          width:320, borderLeft:"1px solid var(--border)",
+          display:"flex", flexDirection:"column",
+          background:"var(--black2)", flexShrink:0
+        }}>
+          <div style={{
+            padding:"10px 14px", borderBottom:"1px solid var(--border)",
+            display:"flex", alignItems:"center", justifyContent:"space-between"
+          }}>
+            <span style={{
+              fontFamily:"Space Mono,monospace", fontSize:8,
+              letterSpacing:2, color:"var(--accent)", textTransform:"uppercase"
+            }}>Browser View</span>
+            <button
+              onClick={() => setShowPanel(false)}
+              style={{
+                background:"none", border:"none", cursor:"pointer",
+                color:"var(--dim)", fontSize:14, lineHeight:1
+              }}
+              title="Close panel"
+            >×</button>
+          </div>
+          <div style={{flex:1, overflowY:"auto", padding:8}}>
+            {liveScreenshot
+              ? <img
+                  src={`data:image/png;base64,${liveScreenshot}`}
+                  style={{width:"100%", border:"1px solid var(--border)"}}
+                  alt="Browser screenshot"
+                />
+              : <div style={{
+                  fontFamily:"Space Mono,monospace", fontSize:9,
+                  color:"var(--dim)", padding:"20px 8px", textAlign:"center"
+                }}>No screenshot yet</div>
+            }
+          </div>
+        </div>
+      )}
+
+      {/* Panel open toggle when closed */}
+      {!showPanel && liveScreenshot && (
+        <button
+          onClick={() => setShowPanel(true)}
+          title="Show Browser View"
+          style={{
+            position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
+            background:"var(--black2)", border:"1px solid var(--border)",
+            borderRight:"none", color:"var(--accent)", cursor:"pointer",
+            fontFamily:"Space Mono,monospace", fontSize:8, letterSpacing:1,
+            padding:"12px 6px", writingMode:"vertical-rl", textTransform:"uppercase"
+          }}
+        >
+          Browser View
+        </button>
+      )}
     </div>
   )
 }

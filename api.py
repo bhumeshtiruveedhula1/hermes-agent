@@ -1,6 +1,6 @@
 # api.py — Hermes FastAPI Backend — Phase 9: Context Memory
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
@@ -25,6 +25,7 @@ from core.filesystem.capability import FilesystemCapability
 from core.filesystem.sandbox import SandboxResolver
 from core.conversation_store import ConversationStore
 from core.context_manager import build_contextual_input   # ← Phase 9
+from core.user_store import UserStore                      # ← Phase 11
 import tools_web
 import tools_email
 
@@ -33,6 +34,7 @@ agent_store      = AgentStore()
 permission_store = PermissionStore()
 credential_vault = CredentialVault()
 conv_store       = ConversationStore()
+user_store       = UserStore()                             # Phase 11
 
 permission_store.grant("search_web",     "default")
 permission_store.grant("check_inbox",    "default")
@@ -139,8 +141,25 @@ class SafeModeRequest(BaseModel):
 class PluginDesignRequest(BaseModel):
     description: str
 
+class BrowserModeRequest(BaseModel):
+    headless: bool
+
 class PinRequest(BaseModel):
     pinned: bool
+
+# Phase 11 — Auth models
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
+class CreateUserRequest(BaseModel):
+    name: str
+    password: str
+    role: str = "user"
+
+# Phase 11 — User ID from request header (defaults to user_1 for backward compat)
+def get_user_id(request: Request) -> str:
+    return request.headers.get("X-User-Id", "user_1")
 
 # ── Status ────────────────────────────────────────────────────────────
 @app.get("/api/status")
@@ -210,11 +229,38 @@ def get_audit(limit: int = 50):
         })
     return list(reversed(result))
 
+# ── Auth (Phase 11) ──────────────────────────────────────────────────
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    user = user_store.verify(req.name, req.password)
+    if not user:
+        return {"ok": False, "error": "Invalid credentials"}
+    return {"ok": True, "user": {
+        "id": user["id"], "name": user["name"], "role": user["role"]
+    }}
+
+@app.post("/api/auth/register")
+def register(req: CreateUserRequest):
+    if user_store.get_by_name(req.name):
+        return {"ok": False, "error": "Username taken"}
+    user = user_store.create(req.name, req.password, req.role)
+    return {"ok": True, "user": {"id": user["id"], "name": user["name"]}}
+
+@app.get("/api/auth/users")
+def list_users():
+    return user_store.list_all()
+
+@app.delete("/api/auth/users/{user_id}")
+def delete_user(user_id: str):
+    ok = user_store.delete(user_id)
+    return {"ok": ok, "error": "Cannot delete admin" if not ok else None}
+
 # ── Files ─────────────────────────────────────────────────────────────
 @app.get("/api/files")
-def get_files(user_id: str = "user_1", path: str = "/documents"):
+def get_files(request: Request, path: str = "/documents"):
+    uid = get_user_id(request)
     try:
-        physical = SandboxResolver.resolve(user_id, path)
+        physical = SandboxResolver.resolve(uid, path)
         if not physical.exists():
             return []
         items = []
@@ -230,23 +276,26 @@ def get_files(user_id: str = "user_1", path: str = "/documents"):
         return {"error": str(e)}
 
 @app.post("/api/files/write")
-async def write_file(req: WriteRequest, user_id: str = "user_1"):
-    fs = FilesystemCapability()
-    result = fs.execute(action="write", path=req.path, user_id=user_id, agent="dashboard", content=req.content)
+async def write_file(req: WriteRequest, request: Request):
+    uid = get_user_id(request)
+    fs  = FilesystemCapability()
+    result = fs.execute(action="write", path=req.path, user_id=uid, agent="dashboard", content=req.content)
     await broadcast({"type": "file_change", "action": "write", "path": req.path})
     return {"result": result}
 
 @app.delete("/api/files/delete")
-async def delete_file(path: str, user_id: str = "user_1"):
-    fs = FilesystemCapability()
-    result = fs.execute(action="delete", path=path, user_id=user_id, agent="dashboard")
+async def delete_file(path: str, request: Request):
+    uid = get_user_id(request)
+    fs  = FilesystemCapability()
+    result = fs.execute(action="delete", path=path, user_id=uid, agent="dashboard")
     await broadcast({"type": "file_change", "action": "delete", "path": path})
     return {"result": result}
 
 @app.get("/api/files/read")
-def read_file(path: str, user_id: str = "user_1"):
-    fs = FilesystemCapability()
-    result = fs.execute(action="read", path=path, user_id=user_id, agent="dashboard")
+def read_file(path: str, request: Request):
+    uid = get_user_id(request)
+    fs  = FilesystemCapability()
+    result = fs.execute(action="read", path=path, user_id=uid, agent="dashboard")
     return {"content": result}
 
 # ── Browser ───────────────────────────────────────────────────────────
@@ -280,6 +329,14 @@ async def api_browser_close():
     session = BrowserSession.get()
     result  = session.execute(action="close")
     return {"result": result}
+
+# Phase 10 Task 3 — Headless mode toggle
+@app.post("/api/browser/mode")
+async def set_browser_mode(req: BrowserModeRequest):
+    from core.browser.session import BrowserSession
+    BrowserSession.set_headless(req.headless)
+    await broadcast({"type": "browser_mode_changed", "headless": req.headless})
+    return {"headless": req.headless, "ok": True}
 
 # ── Approvals ─────────────────────────────────────────────────────────
 @app.get("/api/approvals/pending")
@@ -357,28 +414,28 @@ async def restore_plugin(name: str):
 
 # ── Conversations ─────────────────────────────────────────────────────
 @app.post("/api/conversations")
-def create_conversation():
-    return conv_store.create()
+def create_conversation(request: Request):
+    return conv_store.create(user_id=get_user_id(request))
 
 @app.get("/api/conversations")
-def list_conversations(search: str = ""):
-    return conv_store.list_all(search)
+def list_conversations(request: Request, search: str = ""):
+    return conv_store.list_all(search=search, user_id=get_user_id(request))
 
 @app.get("/api/conversations/{conv_id}")
-def get_conversation(conv_id: str):
-    conv = conv_store.get(conv_id)
+def get_conversation(conv_id: str, request: Request):
+    conv = conv_store.get(conv_id, user_id=get_user_id(request))
     if not conv:
         return {"error": "Not found"}
     return conv
 
 @app.delete("/api/conversations/{conv_id}")
-def delete_conversation(conv_id: str):
-    conv_store.delete(conv_id)
+def delete_conversation(conv_id: str, request: Request):
+    conv_store.delete(conv_id, user_id=get_user_id(request))
     return {"ok": True}
 
 @app.post("/api/conversations/{conv_id}/pin")
-def pin_conversation(conv_id: str, req: PinRequest):
-    conv_store.pin(conv_id, req.pinned)
+def pin_conversation(conv_id: str, req: PinRequest, request: Request):
+    conv_store.pin(conv_id, req.pinned, user_id=get_user_id(request))
     return {"ok": True}
 
 # ── Chat (stateless — no context) ────────────────────────────────────
@@ -401,7 +458,8 @@ async def chat(req: ChatRequest):
 
 # ── Chat Mission (with context memory) ───────────────────────────────
 @app.post("/api/chat/mission")
-async def chat_mission(req: ConvMessageRequest):
+async def chat_mission(req: ConvMessageRequest, request: Request):
+    user_id = get_user_id(request)   # Phase 11: per-user isolation
     try:
         from core.autocorrect import autocorrect
         corrected_msg, corrections = autocorrect(req.message)
@@ -426,12 +484,12 @@ async def chat_mission(req: ConvMessageRequest):
             try:
                 result_data = designer.design(corrected_msg)
                 result = f"Plugin '{result_data['plugin_name']}' designed! Go to the Plugins tab to review the spec, code, and approve it."
-                conv_store.add_message(req.conv_id, "hermes", result, ["plugin_designer"])
+                conv_store.add_message(req.conv_id, "hermes", result, ["plugin_designer"], user_id=user_id)
                 await broadcast({"type": "plugin_designed", "name": result_data["plugin_name"]})
                 return {"plan": {}, "result": result, "tools_used": ["plugin_designer"], "corrections": corrections}
             except Exception as e:
                 result = f"[ERROR] Plugin design failed: {e}"
-                conv_store.add_message(req.conv_id, "hermes", result, [])
+                conv_store.add_message(req.conv_id, "hermes", result, [], user_id=user_id)
                 return {"plan": {}, "result": result, "tools_used": [], "corrections": corrections}
 
         # ── Recall shortcut — deterministic memory answer ─────────────────
@@ -453,11 +511,11 @@ async def chat_mission(req: ConvMessageRequest):
                 ])
                 result     = recall_resp.content
                 tools_used = []
-                conv_store.add_message(req.conv_id, "hermes", result, tools_used)
-                conv_obj = conv_store.get(req.conv_id)
+                conv_store.add_message(req.conv_id, "hermes", result, tools_used, user_id=user_id)
+                conv_obj = conv_store.get(req.conv_id, user_id=user_id)
                 if conv_obj and len(conv_obj["messages"]) == 2:
-                    conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used))
-                    conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result))
+                    conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used), user_id=user_id)
+                    conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result), user_id=user_id)
                 await broadcast({"type": "conversation_updated", "conv_id": req.conv_id, "tools": tools_used})
                 return {
                     "plan": {"goal": "Answer from memory", "steps": []},
@@ -505,16 +563,17 @@ async def chat_mission(req: ConvMessageRequest):
                 step["tool"] = None
                 step["description"] = f"[REJECTED] User denied {tool}"
 
+        executor.current_user_id = user_id   # Phase 11: route fs ops to correct sandbox
         result     = executor.execute_plan(plan)
         tools_used = [s.get("tool") for s in plan.get("steps", []) if s.get("tool")]
 
-        conv_store.add_message(req.conv_id, "hermes", result, tools_used)
+        conv_store.add_message(req.conv_id, "hermes", result, tools_used, user_id=user_id)
 
         # Auto-title after first exchange
-        conv = conv_store.get(req.conv_id)
+        conv = conv_store.get(req.conv_id, user_id=user_id)
         if conv and len(conv["messages"]) == 2:
-            conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used))
-            conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result))
+            conv_store.update_title(req.conv_id, _generate_title(req.message, result, tools_used), user_id=user_id)
+            conv_store.update_summary(req.conv_id, _generate_summary(tools_used, result), user_id=user_id)
 
         await broadcast({"type": "conversation_updated", "conv_id": req.conv_id, "tools": tools_used})
 

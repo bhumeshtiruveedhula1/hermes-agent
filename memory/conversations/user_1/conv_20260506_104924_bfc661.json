@@ -1,0 +1,59 @@
+{
+  "id": "conv_20260506_104924_bfc661",
+  "title": "fs_read",
+  "created_at": "2026-05-06T10:49:24.668424",
+  "updated_at": "2026-05-06T11:00:08.637692",
+  "messages": [
+    {
+      "role": "user",
+      "text": "read /documents/notes.txt",
+      "ts": "2026-05-06T10:49:24.808144",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Contents of /documents/notes.txt:\nhello world",
+      "ts": "2026-05-06T10:49:41.595374",
+      "tools": [
+        "fs_read"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "what did you just read?",
+      "ts": "2026-05-06T10:49:48.866877",
+      "tools": []
+    },
+    {
+      "role": "user",
+      "text": "what did you just read?",
+      "ts": "2026-05-06T10:57:11.712413",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "The contents of `/documents/notes.txt` are:  \n**hello world**  \n\nWould you like to modify this file, add content, or perform any specific task with it? I'm here to help!",
+      "ts": "2026-05-06T10:57:46.997898",
+      "tools": []
+    },
+    {
+      "role": "user",
+      "text": "summarize it",
+      "ts": "2026-05-06T10:59:54.327014",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Contents of /documents/notes.txt:\nhello world",
+      "ts": "2026-05-06T11:00:08.637682",
+      "tools": [
+        "fs_read"
+      ]
+    }
+  ],
+  "tools_used": [
+    "fs_read"
+  ],
+  "summary": "Used fs_read. Contents of /documents/notes.txt:\nhello world...",
+  "pinned": false
+}

@@ -150,12 +150,31 @@ FILESYSTEM DESCRIPTION FORMATS (MANDATORY — executor parses these exactly):
 
 BROWSER RULES:
 - To open ANY website: ALWAYS use "browser_go". NEVER "browser_open". NEVER "browser_navigate".
-- browser_go description must contain the full URL
+- browser_go description MUST be a real URL starting with https://
+  CORRECT:   Navigate to https://youtube.com
+  WRONG:     Navigate to YouTube search results for 'cars'   ← NOT a URL, will crash!
+  WRONG:     Go to youtube search                            ← NOT a URL, will crash!
 - Use browser_read immediately after browser_go to read page content
 - To close: EXACTLY "browser_close"
 - NEVER navigate to localhost or 127.0.0.1
-- "press enter", "hit enter", "submit" after filling → use browser_press with description "Enter"
-- browser_press description should be the key name: "Enter", "Tab", "Escape"
+
+BROWSER SEARCH RULES (read carefully):
+- When BROWSER CURRENTLY AT shows a site AND user says "search for X" on that site:
+  → Use browser_fill, NOT browser_go
+  → Description: Fill search box with "X"
+  → The fill auto-presses Enter — no extra step needed
+  Example: on youtube.com + "search for cars" → browser_fill: Fill search box with "cars"
+  Example: on google.com + "search for python" → browser_fill: Fill search box with "python"
+
+- When browser is NOT open and user says "search for X":
+  → Use browser_go with a REAL search URL:
+  Google: Navigate to https://www.google.com/search?q=X
+  YouTube: Navigate to https://www.youtube.com/results?search_query=X
+  → Replace spaces with + in the query
+  Example: "search for mr beast on youtube" → Navigate to https://www.youtube.com/results?search_query=mr+beast
+
+- NEVER use browser_go with a description that is not a URL.
+- NEVER generate descriptions like "Navigate to search results for X" — that is not a URL!
 
 GMAIL RULES:
 - "check my emails", "show emails", "list emails", "unread emails", "inbox" → ALWAYS use "gmail_list"

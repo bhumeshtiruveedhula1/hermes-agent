@@ -33,6 +33,17 @@ def format_context(messages: list) -> str:
         return ""
 
     lines = ["=== CONVERSATION HISTORY (use this as context) ==="]
+
+    # Phase 10 Task 5: Inject current browser URL so planner knows active page
+    try:
+        from core.browser.session import BrowserSession
+        if BrowserSession._instance is not None:
+            url = BrowserSession._instance.get_current_url()
+            if url and not url.startswith("about:") and url != "No page open":
+                lines.append(f"BROWSER CURRENTLY AT: {url}")
+    except Exception:
+        pass  # never break context generation over browser state
+
     for msg in history:
         role  = msg.get("role", "")
         text  = msg.get("text", "")

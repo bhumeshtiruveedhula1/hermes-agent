@@ -1,0 +1,80 @@
+{
+  "id": "conv_20260506_115808_e6b7f2",
+  "title": "Wrote file",
+  "created_at": "2026-05-06T11:58:08.061751",
+  "updated_at": "2026-05-06T12:00:51.107000",
+  "messages": [
+    {
+      "role": "user",
+      "text": "write \"hello world\" to /documents/test.txt",
+      "ts": "2026-05-06T11:58:08.188321",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: test.txt",
+      "ts": "2026-05-06T11:58:28.741017",
+      "tools": [
+        "fs_write"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "read /documents/test.txt",
+      "ts": "2026-05-06T11:59:07.111315",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Contents of /documents/test.txt:\nhello world",
+      "ts": "2026-05-06T11:59:17.405808",
+      "tools": [
+        "fs_read"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "what did you just read?",
+      "ts": "2026-05-06T11:59:20.797134",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "The contents of the file were \"hello world\".",
+      "ts": "2026-05-06T11:59:32.513240",
+      "tools": []
+    },
+    {
+      "role": "user",
+      "text": "summarize it",
+      "ts": "2026-05-06T11:59:37.026016",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "The file contains the standard example string \"hello world\", commonly used in programming to test basic output functionality.",
+      "ts": "2026-05-06T11:59:40.403088",
+      "tools": []
+    },
+    {
+      "role": "user",
+      "text": "write that again to /documents/copy.txt",
+      "ts": "2026-05-06T11:59:45.371787",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Written: copy.txt",
+      "ts": "2026-05-06T12:00:51.106992",
+      "tools": [
+        "fs_write"
+      ]
+    }
+  ],
+  "tools_used": [
+    "fs_write",
+    "fs_read"
+  ],
+  "summary": "Used fs_write. Written: test.txt...",
+  "pinned": false
+}

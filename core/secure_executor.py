@@ -25,6 +25,7 @@ class SecureExecutor:
         self.execution_enabled= execution_enabled
         self.safe_mode        = safe_mode
         self.auto_builder     = AutoToolBuilder(llm, tool_registry, safe_mode=safe_mode)
+        self.current_user_id  = "user_1"   # Phase 11: set per-request by api.py
 
     def execute_plan(self, plan: dict) -> str:
         results = []
@@ -60,11 +61,11 @@ class SecureExecutor:
 
                     content = step.get("content", "")
                     if not content and tool_name == "fs_write":
-                        quote_match = re.search(r'["\'](.+?)["\']', description)
+                        quote_match = re.search(r'["\'"](.+?)["\'"]', description)
                         content = quote_match.group(1) if quote_match else ""
 
                     result = fs.execute(action=action, path=clean_path,
-                                        user_id="user_1", agent="hermes", content=content)
+                                        user_id=self.current_user_id, agent="hermes", content=content)
 
                     if tool_name == "fs_read" and result and not result.startswith("["):
                         result = f"Contents of {clean_path}:\n{result}"
@@ -74,7 +75,7 @@ class SecureExecutor:
                     results.append(f"[ERROR] Filesystem error: {e}")
                     self.audit.log(AuditEvent(phase="filesystem", action="tool_call",
                         tool_name=tool_name, decision="failed", reason=str(e)))
-                continue   # ← CRITICAL — was missing before!
+                continue   # ← CRITICAL
 
             # ── BROWSER ──────────────────────────────────────────────
             if tool_name in BROWSER_TOOLS:
@@ -89,7 +90,50 @@ class SecureExecutor:
                     clean_target = description
                     if tool_name == "browser_go":
                         url_match = re.search(r'https?://[^\s]+', description)
-                        clean_target = url_match.group(0) if url_match else description
+                        if url_match:
+                            clean_target = url_match.group(0)
+                        else:
+                            # ── Safety net: description is not a URL ──────────────
+                            # Extract the search query and build a real URL.
+                            # e.g. "Navigate to YouTube search results for 'cars'"
+                            #   → https://www.youtube.com/results?search_query=cars
+                            desc_lower = description.lower()
+
+                            # Try to extract a quoted or 'for X' query term
+                            q_match = re.search(r'["\'](.+?)["\']', description)
+                            kw_match = re.search(r'\bfor\s+["\']?(.+?)["\']?\s*$', description, re.I)
+                            query_raw = (q_match.group(1) if q_match
+                                         else kw_match.group(1) if kw_match
+                                         else description)
+                            query = re.sub(r'\s+', '+', query_raw.strip())
+
+                            if "youtube" in desc_lower:
+                                clean_target = f"https://www.youtube.com/results?search_query={query}"
+                            elif "google" in desc_lower:
+                                clean_target = f"https://www.google.com/search?q={query}"
+                            else:
+                                # generic domain check
+                                domain_m = re.search(r'\b([\w\-]+\.(?:com|org|net|io|co))\b', description)
+                                if domain_m:
+                                    clean_target = f"https://{domain_m.group(1)}"
+                                else:
+                                    clean_target = f"https://www.google.com/search?q={query}"
+
+                    # ── Phase 10 Task 1: Smart fill value extraction ──
+                    def _extract_fill_value(desc: str) -> str:
+                        # Priority 1 — quoted value: fill search with "mr beast"
+                        q = re.search(r'["\'](.+?)["\']', desc)
+                        if q: return q.group(1)
+                        # Priority 2 — "with X" / "type X" pattern
+                        w = re.search(r'\b(?:with|type|enter|input)\s+(.+?)(?:\s+and\s+|\s+then\s+|$)', desc, re.I)
+                        if w: return w.group(1).strip()
+                        # Priority 3 — "value=X"
+                        v = re.search(r'value=([^\s]+)', desc)
+                        if v: return v.group(1)
+                        # Priority 4 — everything after first "="
+                        if "=" in desc:
+                            return desc.split("=", 1)[1].strip()
+                        return desc
 
                     action_map = {
                         "browser_go":     ("navigate",   clean_target, ""),
@@ -100,10 +144,19 @@ class SecureExecutor:
                         "browser_close":  ("close",      "", ""),
                         "browser_fill":   ("fill",
                             description.split("=")[0].strip() if "=" in description else "input#search",
-                            description.split("=",1)[1].strip() if "=" in description else description),
+                            _extract_fill_value(description)),
                     }
                     action, target, value = action_map[tool_name]
                     result = browser.execute(action=action, target=target, value=value)
+
+                    # ── Phase 10 Task 2: Auto press Enter after fill ──
+                    if tool_name == "browser_fill":
+                        try:
+                            browser.execute(action="press", target="Enter", value="")
+                            result += " → pressed Enter"
+                        except Exception:
+                            pass  # non-fatal — fill still succeeded
+
                     if tool_name == "browser_shot":
                         result = f"[SCREENSHOT_B64]{result}"
                     results.append(str(result))

@@ -1,0 +1,56 @@
+{
+  "id": "conv_20260506_125440_c8f449",
+  "title": "Browsed web",
+  "created_at": "2026-05-06T12:54:40.398530",
+  "updated_at": "2026-05-06T12:58:24.686392",
+  "messages": [
+    {
+      "role": "user",
+      "text": "open youtube.com",
+      "ts": "2026-05-06T12:54:50.357300",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Navigated to: https://www.youtube.com/",
+      "ts": "2026-05-06T12:55:08.794010",
+      "tools": [
+        "browser_go"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "search for cars in youtube",
+      "ts": "2026-05-06T12:55:13.135583",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Filled 'input[name='search_query']' with 'cars' \u2192 pressed Enter",
+      "ts": "2026-05-06T12:56:29.172885",
+      "tools": [
+        "browser_fill"
+      ]
+    },
+    {
+      "role": "user",
+      "text": "search for python tutorials on youtube",
+      "ts": "2026-05-06T12:56:58.158390",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Filled 'input[name='search_query']' with 'python tutorials' \u2192 pressed Enter",
+      "ts": "2026-05-06T12:58:24.686386",
+      "tools": [
+        "browser_fill"
+      ]
+    }
+  ],
+  "tools_used": [
+    "browser_go",
+    "browser_fill"
+  ],
+  "summary": "Used browser_go. Navigated to: https://www.youtube.com/...",
+  "pinned": false
+}

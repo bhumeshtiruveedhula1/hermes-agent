@@ -13,9 +13,10 @@ class BrowserSession:
     """
     _instance = None
     _lock = threading.Lock()
+    headless: bool = False  # Phase 10: class-level mode flag (False = live/visible)
 
     def __init__(self):
-        self.engine = BrowserEngine(headless=False)
+        self.engine = BrowserEngine(headless=BrowserSession.headless)
         self._started = False
         self._loop = None
         self._thread = None
@@ -139,3 +140,50 @@ class BrowserSession:
             if cls._instance is None:
                 cls._instance = BrowserSession()
             return cls._instance
+
+    @classmethod
+    def set_headless(cls, val: bool):
+        """
+        Phase 10 Task 3 — Toggle headless mode.
+
+        IMPORTANT: We do NOT destroy the singleton here.
+        Killing _instance spawns a new background thread on next get(),
+        which conflicts with the still-running daemon thread from the old
+        session → Chrome window never surfaces.
+
+        Instead we call engine.set_headless() which:
+          1. Saves the current URL
+          2. Stops the current Playwright browser
+          3. Relaunches with the new headless setting (same thread / loop)
+          4. Re-navigates to the saved URL
+        """
+        cls.headless = val                       # update flag for new sessions
+
+        instance = cls._instance
+        if instance is None:
+            return                               # no browser running — flag is enough
+
+        if not instance._started:
+            # Session object exists but browser never launched; just patch the engine flag
+            instance.engine.headless = val
+            return
+
+        # Browser is live → graceful in-place restart
+        try:
+            instance._run(instance.engine.set_headless(val))
+        except Exception:
+            # Graceful restart failed → mark stopped so ensure_started() retries cleanly
+            instance._started = False
+            instance.engine.headless = val
+
+    def get_current_url(self) -> str:
+        """
+        Phase 10 Task 5: Return the current page URL.
+        Returns empty string if browser not started.
+        """
+        try:
+            if self._started and self.engine._page:
+                return self._run(self.engine.current_url())
+        except Exception:
+            pass
+        return ""
