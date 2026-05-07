@@ -1,0 +1,105 @@
+[
+  {
+    "id": "conv_20260506_172600_6e305e",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-05-06T17:26:00.109509",
+    "updated_at": "2026-05-06T17:26:00.109517",
+    "message_count": 0
+  },
+  {
+    "id": "conv_20260506_172834_45771d",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-05-06T17:28:34.167498",
+    "updated_at": "2026-05-06T17:28:34.167504",
+    "message_count": 0
+  },
+  {
+    "id": "conv_20260506_173318_0ebbdb",
+    "title": "hermes can you tell me your capabilities",
+    "summary": "Understood! As Hermes, my primary function is to assist users by performing tasks efficiently using ",
+    "tools_used": [
+      "weather_current",
+      "browser_go",
+      "browser_read",
+      "search_web",
+      "github_search",
+      "github_repos",
+      "github_repo_info"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T17:33:18.129836",
+    "updated_at": "2026-05-06T17:37:14.492242",
+    "message_count": 6
+  },
+  {
+    "id": "conv_20260506_173801_202da8",
+    "title": "suggest me some new plugins for timepass",
+    "summary": "Certainly! Here are some plugin suggestions that could enhance the functionality of Timeless:\n\n1. **",
+    "tools_used": [
+      "plugin_designer",
+      "calendar_today",
+      "gmail_list",
+      "gmail_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-06T17:38:01.906118",
+    "updated_at": "2026-05-06T17:42:17.566115",
+    "message_count": 5
+  },
+  {
+    "id": "conv_20260507_010357_60d4f2",
+    "title": "\"send a slack message to general saying Hermes Pha...",
+    "summary": "Sure, here's a concise message you can send:\n\n---\n\n**Hermes Update:**  \nHermes Phase 14 is now live!",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-05-07T01:03:57.455115",
+    "updated_at": "2026-05-07T01:07:27.082575",
+    "message_count": 3
+  },
+  {
+    "id": "conv_20260507_011454_e38a39",
+    "title": "slack_channels",
+    "summary": "Used slack_channels. [BLOCKED] Slack error: The request to the Slack API failed. (url: https://slack....",
+    "tools_used": [
+      "notion_list",
+      "slack_channels"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-07T01:14:54.779053",
+    "updated_at": "2026-05-07T01:17:29.244564",
+    "message_count": 4
+  },
+  {
+    "id": "conv_20260507_012318_5f9bd3",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [
+      "slack_channels"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-07T01:23:18.407394",
+    "updated_at": "2026-05-07T01:23:36.668023",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260507_014414_b11b22",
+    "title": "spotify_search",
+    "summary": "Used spotify_search. [BLOCKED] Spotify error: http status: 403, code: -1 - https://api.spotify.com/v1...",
+    "tools_used": [
+      "spotify_current",
+      "spotify_search",
+      "telegram_send",
+      "github_repos"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-07T01:44:14.357452",
+    "updated_at": "2026-05-07T01:57:20.525023",
+    "message_count": 4
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "id": "conv_20260507_012318_5f9bd3",
+  "title": "New Mission",
+  "created_at": "2026-05-07T01:23:18.407394",
+  "updated_at": "2026-05-07T01:23:36.668023",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "Slack channels (3):\n\u2022 #social (1 members)\n\u2022 #all-aadhavaan (1 members)\n\u2022 #new-channel (1 members)",
+      "ts": "2026-05-07T01:23:36.668014",
+      "tools": [
+        "slack_channels"
+      ]
+    }
+  ],
+  "tools_used": [
+    "slack_channels"
+  ],
+  "summary": "",
+  "pinned": false,
+  "user_id": "user_15b0f942"
+}

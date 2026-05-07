@@ -1,0 +1,28 @@
+{
+  "name": "calendar_access",
+  "version": "1.0",
+  "status": "pending",
+  "description": "Access your calendar to get today's events.",
+  "auth": {
+    "type": "oauth",
+    "env_var": "CALENDAR_ACCESS_TOKEN"
+  },
+  "tools": [
+    {
+      "name": "get_today_events",
+      "description": "Retrieve today's events from the calendar.",
+      "planner_hint": "Use this tool when you need to know what events are scheduled for today. The description field should be empty.",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.calendar_access",
+    "class": "CalendarAccessCapability",
+    "action_map": {
+      "get_today_events": {
+        "action": "fetch_today_events",
+        "parse": "none"
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "slack",
+  "version": "1.0",
+  "status": "active",
+  "description": "Send and read Slack messages across workspace channels",
+  "auth": {
+    "type": "api_key",
+    "env_var": "SLACK_BOT_TOKEN"
+  },
+  "tools": [
+    {
+      "name": "slack_channels",
+      "description": "List all Slack channels in the workspace",
+      "planner_hint": "Use to list all available Slack channels. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "slack_send",
+      "description": "Send a message to a Slack channel",
+      "planner_hint": "Use to send a Slack message to a channel. Format: channel=general text=your message here",
+      "requires_approval": true
+    },
+    {
+      "name": "slack_read",
+      "description": "Read recent messages from a Slack channel",
+      "planner_hint": "Use to read the last 10 messages from a Slack channel. Format: channel=general",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.slack",
+    "class": "SlackCapability",
+    "action_map": {
+      "slack_channels": {"action": "list_channels", "parse": "none"},
+      "slack_send":     {"action": "send",          "parse": "query"},
+      "slack_read":     {"action": "read",          "parse": "query"}
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "conv_20260506_173318_0ebbdb",
+  "title": "hermes can you tell me your capabilities",
+  "created_at": "2026-05-06T17:33:18.129836",
+  "updated_at": "2026-05-06T17:37:14.492242",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "Hello! It looks like there might have been a mix-up in addressing me. I'm Hermes, an AI assistant designed to help with a variety of tasks. How can I assist you today? Whether you need information, support with a project, or just someone to chat with, feel free to let me know how I can be of use!",
+      "ts": "2026-05-06T17:33:46.183291",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Understood! As Hermes, my primary function is to assist users by performing tasks efficiently using the tools at my disposal. Whether you need help managing your schedule, searching for information online, or automating repetitive tasks, feel free to let me know how I can assist you. Just provide me with a clear description of what you need, and I'll do my best to execute it promptly and accurately.",
+      "ts": "2026-05-06T17:34:30.508438",
+      "tools": []
+    },
+    {
+      "role": "hermes",
+      "text": "Weather in Bangalore Town, Pakistan:\nCondition: Clear sky\nTemperature: 27.5\u00b0C (feels like 32.6\u00b0C)\nHumidity: 84%\nWind: 9.4 km/h",
+      "ts": "2026-05-06T17:35:00.723121",
+      "tools": [
+        "weather_current"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "Navigated to: https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dtop%2Bnews%2Btoday%26sei%3D6Hv7ab_FDYG9seMPyZfDGA&q=EgRqM7yHGOj37c8GIjAuDqpN-G5z78AJTi1JXEj_b8wbNh5Py8irsVaw7XOeQA6EYNUncrgsoMo7iXtftXsyAVJaAUM\n\nWhy did this happen?\nTerms of Service\nLearn more",
+      "ts": "2026-05-06T17:35:36.076262",
+      "tools": [
+        "browser_go",
+        "browser_read"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "SOURCE: News: U.S. and World News Headlines : NPR\nCONTENT: \n                    NPR news, audio, and podcasts. Coverage of breaking stories, national and world news, politics, business, science, technology, and extended coverage of major national and world events.\n                  \nLINK: https://www.npr.org/sections/news/\n\nSOURCE: LIVE: Breaking News and Top Stories on CBS News 24/7\nCONTENT: \n                    Get today's top stories, breaking news and original reporting on CBS News 24/7.#news #livenews #breakingnews CBS News 24/7 is the premier anchored streaming ...\n                  \nLINK: https://www.youtube.com/CBSNews/live\n\nSOURCE: The New York Times - Breaking News, US News, World News and Videos\nCONTENT: \n                    Live news, investigations, opinion, photos and video by the journalists of The New York Times from more than 150 countries around the world. Subscribe for coverage of U.S. and international news ...\n                  \nLINK: https://www.nytimes.com/\n\nSOURCE: Top News, Latest headlines, Latest News, World News & U.S News - UPI.com\nCONTENT: \n                    Top News // 22 hours ago Hantavirus strain on cruise ship may have passed via human-to-human contact Top News // 15 hours ago Iran warns it is 'just getting started,' U.S. moves to dial down heat\n                  \nLINK: https://www.upi.com/\n\nSOURCE: News | Today's latest from Al Jazeera\nCONTENT: \n                    Stay on top of News latest developments on the ground with Al Jazeera's fact-based news, exclusive video footage, photos and updated maps.\n                  \nLINK: https://www.aljazeera.com/news/",
+      "ts": "2026-05-06T17:36:13.022495",
+      "tools": [
+        "search_web"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "Repo: ajaybhatiya1234/DEEP-FACE-dectection01\nStars: 16 | Language: Python\nDescription: ![parallel coordinates plot](/images/parcoords.gif)  Read the technical deep dive: https://www.dessa.com/post/deepfake-detection-that-actually-works  # Visual DeepFake Detection  In our recent [article](https://www.dessa.com/post/deepfake-detection-that-actually-works), we make the following contributions: * We show that the model proposed in current state of the art in video manipulation (FaceForensics++) does not generalize to real-life videos randomly  collected  from Youtube. * We show the need for the detector to be constantly updated with real-world data, and propose an initial solution in hopes of solving deepfake video detection.  Our Pytorch implementation, conducts extensive experiments to demonstrate that the datasets produced by Google and detailed in the FaceForensics++  paper are not sufficient for making neural networks generalize to detect real-life face manipulation techniques. It also provides a current solution for such  behavior which relies on adding more data.    Our Pytorch model is based on a pre-trained ResNet18 on Imagenet, that we finetune to solve the deepfake detection problem. We also conduct large scale experiments using Dessa's open source scheduler + experiment manger [Atlas](https://github.com/dessa-research/atlas).  ## Setup   ## Prerequisities To run the code, your system should meet the following requirements: RAM >= 32GB , GPUs >=1  ## Steps  0. Install [nvidia-docker](https://github.com/nvidia/nvidia-docker/wiki/Installation-(version-2.0)) 00. Install [ffmpeg](https://www.ffmpeg.org/download.html) or `sudo apt install ffmpeg` 1. Git Clone this repository. 2. If you haven't already, install [Atlas](https://github.com/dessa-research/atlas). 3. Once you've installed Atlas, activate your environment if you haven't already, and navigate to your project folder.  That's it, You're ready to go!  ## Datasets Half of the dataset used in this project is from the [FaceForensics](https://github.com/ondyari/FaceForensics/tree/master/dataset) deepfake detection dataset. .   To download this data, please make sure to fill out the [google form](https://github.com/ondyari/FaceForensics/#access) to request access to the data.  For the dataset that we collected from Youtube, it is accessible on [S3](ttps://deepfake-detection.s3.amazonaws.com/augment_deepfake.tar.gz) for download.  To automatically download and restructure both datasets, please execute:  ``` bash restructure_data.sh faceforensics_download.py ```  Note: You need to have received the download script from FaceForensics++ people before executing the restructure script.  Note2: We created the `restructure_data.sh` to do a split that replicates our exact experiments avaiable in the UI above, please feel free to change the  splits as you wish.  ## Walkthrough  Before starting to train/evaluate models, we should first create the docker image that we will be running our experiments with. To do so, we already prepared  a dockerfile to do that inside `custom_docker_image`. To create the docker image, execute the following commands in terminal:    ```  cd custom_docker_image  nvidia-docker build . -t atlas_ff  ```   Note: if you change the image name, please make sure you also modify line 16 of `job.config.yaml` to match the docker image name.  Inside `job.config.yaml`, please modify the data path on host from `/media/biggie2/FaceForensics/datasets/` to the absolute path of your `datasets` folder.  The folder containing your datasets should have the following structure:  ``` datasets \u251c\u2500\u2500 augment_deepfake        (2) \u2502\u00a0\u00a0 \u251c\u2500\u2500 fake \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u251c\u2500\u2500 real \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u2514\u2500\u2500 val \u2502\u00a0\u00a0     \u251c\u2500\u2500 fake \u2502\u00a0\u00a0     \u2514\u2500\u2500 real \u251c\u2500\u2500 base_deepfake           (1) \u2502\u00a0\u00a0 \u251c\u2500\u2500 fake \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u251c\u2500\u2500 real \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u2514\u2500\u2500 val \u2502\u00a0\u00a0     \u251c\u2500\u2500 fake \u2502\u00a0\u00a0     \u2514\u2500\u2500 real \u251c\u2500\u2500 both_deepfake           (3) \u2502\u00a0\u00a0 \u251c\u2500\u2500 fake \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u251c\u2500\u2500 real \u2502\u00a0\u00a0 \u2502\u00a0\u00a0 \u2514\u2500\u2500 frames \u2502\u00a0\u00a0 \u2514\u2500\u2500 val \u2502\u00a0\u00a0     \u251c\u2500\u2500 fake \u2502\u00a0\u00a0     \u2514\u2500\u2500 real \u251c\u2500\u2500 precomputed             (4) \u2514\u2500\u2500 T_deepfake              (0)     \u251c\u2500\u2500 manipulated_sequences     \u2502\u00a0\u00a0 \u251c\u2500\u2500 DeepFakeDetection     \u2502\u00a0\u00a0 \u251c\u2500\u2500 Deepfakes     \u2502\u00a0\u00a0 \u251c\u2500\u2500 Face2Face     \u2502\u00a0\u00a0 \u251c\u2500\u2500 FaceSwap     \u2502\u00a0\u00a0 \u2514\u2500\u2500 NeuralTextures     \u2514\u2500\u2500 original_sequences         \u251c\u2500\u2500 actors         \u2514\u2500\u2500 youtube ```  Notes: * (0) is the dataset downloaded using the FaceForensics repo scripts * (1) is a reshaped version of FaceForensics data to match the expected structure by the codebase. subfolders called `frames` contain frames collected using  `ffmpeg` * (2) is the augmented dataset, collected from youtube, available on s3. * (3) is the combination of both base and augmented datasets. * (4) precomputed will be automatically created during training. It holds cashed cropped frames.  Then, to run all the experiments we will show in the article to come, you can launch the script `hparams_search.py` using:  ```bash python hparams_search.py ```  ## Results  In the following pictures, the title for each subplot is in the form `real_prob, fake_prob | prediction | label`.  #### Model trained on FaceForensics++ dataset  For models trained on the paper dataset alone, we notice that the model only learns to detect the manipulation techniques mentioned in the paper and misses  all the manipulations in real world data (from data)  ![model1](/images/model1.png) ![model11](/images/model11.png)  #### Model trained on Youtube dataset  Models trained on the youtube data alone learn to detect real world deepfakes, but also learn to detect easy deepfakes in the paper dataset as well. These  models however fail to detect any other type of manipulation (such as NeuralTextures).  ![model2](/images/model2.png) ![model22](/images/model22.png)  #### Model trained on Paper + Youtube dataset  Finally, models trained on the combination of both datasets together, learns to detect both real world manipulation techniques as well as the other methods  mentioned in FaceForensics++ paper.   ![model3](/images/model3.png) ![model33](/images/model33.png)  for a more in depth explanation of these results, please refer to the [article](https://www.dessa.com/post/deepfake-detection-that-actually-works) we published. More results can be seen in the  [interactive UI](http://deepfake-detection.dessa.com/projects)  ## Help improve this technology  Please feel free to fork this work and keep pushing on it.  If you also want to help improving the deepfake detection datasets, please share your real/forged samples at foundations@dessa.com.  ## LICENSE \u00a9 2020 Square, Inc. ATLAS, DESSA, the Dessa Logo, and others are trademarks of Square, Inc. All third party names and trademarks are properties of their respective owners and are used for identification purposes only.\nURL: https://github.com/ajaybhatiya1234/DEEP-FACE-dectection01\n\nRepo: bhumeshtiruveedhula1/DEEP_FAKE_DETECTION_IN_CORPORATE_SECTORS\nDescription: no description\nStars: 0 | Language: Python\nURL: https://github.com/bhumeshtiruveedhula1/DEEP_FAKE_DETECTION_IN_CORPORATE_SECTORS\n---\nRepo: bhumeshtiruveedhula1/FOLK-PRASADAM-COUPOUN\nDescription: no description\nStars: 0 | Language: C++\nURL: https://github.com/bhumeshtiruveedhula1/FOLK-PRASADAM-COUPOUN\n---\nRepo: bhumeshtiruveedhula1/hermes-agent\nDescription: Autonomous AI Agent Platform \u2014 browser control, filesystem access, scheduled agents, live dashboard\nStars: 0 | Language: Python\nURL: https://github.com/bhumeshtiruveedhula1/hermes-agent\n---\nRepo: bhumeshtiruveedhula1/neuro-lens-ai\nDescription: no description\nStars: 0 | Language: Python\nURL: https://github.com/bhumeshtiruveedhula1/neuro-lens-ai\n\n[BLOCKED] GitHub error: Not Found",
+      "ts": "2026-05-06T17:37:14.492235",
+      "tools": [
+        "github_search",
+        "github_repos",
+        "github_repo_info"
+      ]
+    }
+  ],
+  "tools_used": [
+    "weather_current",
+    "browser_go",
+    "browser_read",
+    "search_web",
+    "github_search",
+    "github_repos",
+    "github_repo_info"
+  ],
+  "summary": "Understood! As Hermes, my primary function is to assist users by performing tasks efficiently using ",
+  "pinned": false,
+  "user_id": "user_15b0f942"
+}

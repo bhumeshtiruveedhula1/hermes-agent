@@ -146,14 +146,15 @@ export default function App() {
         <div className="ticker">
           <div className="ticker-inner">
             {[
-              ["PHASE", "11 COMPLETE — MULTI-USER SYSTEM LIVE"],
-              ["MODEL", "QWEN2.5:14B — RTX 4060"],
-              ["AUDIT", "ALL ACTIONS LOGGED"],
-              ["SANDBOX", `${user.name.toUpperCase()} — /DOCUMENTS MOUNTED`],
+              ["PHASE",    "14 COMPLETE — WHATSAPP · NOTION · SPOTIFY · SLACK"],
+              ["MODEL",    "QWEN2.5-CODER:14B — RTX 4060 HYBRID"],
+              ["AUDIT",    "ALL ACTIONS LOGGED"],
+              ["SANDBOX",  `${user.name.toUpperCase()} — /DOCUMENTS MOUNTED`],
               ["SECURITY", "EXECUTION GATE ACTIVE"],
-              ["PLUGINS", "WEATHER + TELEGRAM + JOKE_TELLER ACTIVE"],
-              ["AUTH", `LOGGED IN AS ${user.name.toUpperCase()} (${user.role.toUpperCase()})`],
-              ["BROWSER", "SMART FILL + AUTO ENTER + LIVE MODE"],
+              ["PLUGINS",  "WHATSAPP · NOTION · SPOTIFY · SLACK · TELEGRAM · GMAIL"],
+              ["AUTH",     `LOGGED IN AS ${user.name.toUpperCase()} (${user.role.toUpperCase()})`],
+              ["BROWSER",  "SMART FILL + AUTO ENTER + LIVE MODE"],
+              ["VOICE",    "MIC INPUT + TTS OUTPUT — PHASE 12"],
             ].map(([k, v], i) => (
               <div className="ticker-item" key={i}>
                 <span className="ticker-key">{k}</span>{v}

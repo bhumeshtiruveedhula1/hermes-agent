@@ -3,23 +3,45 @@ import { useState, useRef, useEffect } from "react"
 import axios from "axios"
 
 const TOOL_COLORS = {
-  gmail_list: "#ff6b6b", gmail_send: "#ff6b6b", gmail_read: "#ff6b6b",
-  browser_go: "#4ecdc4", browser_read: "#4ecdc4",
-  github_repos: "#a78bfa", github_commits: "#a78bfa",
-  fs_list: "#ffd93d", fs_write: "#ffd93d", fs_delete: "#ffd93d",
-  search_web: "#6bcb77", weather_current: "#6bcb77",
+  gmail_list: "#ff6b6b", gmail_send: "#ff6b6b", gmail_read: "#ff6b6b", gmail_search: "#ff6b6b",
+  browser_go: "#4ecdc4", browser_read: "#4ecdc4", browser_click: "#4ecdc4",
+  browser_fill: "#4ecdc4", browser_shot: "#4ecdc4", browser_scroll: "#4ecdc4",
+  github_repos: "#a78bfa", github_commits: "#a78bfa", github_issues: "#a78bfa",
+  github_prs: "#a78bfa", github_search: "#a78bfa", github_create_issue: "#a78bfa",
+  fs_list: "#ffd93d", fs_write: "#ffd93d", fs_delete: "#ffd93d", fs_read: "#ffd93d",
+  search_web: "#6bcb77", weather_current: "#6bcb77", weather_forecast: "#6bcb77",
   calendar_today: "#ff922b", calendar_create: "#ff922b",
-  telegram_send: "#74c0fc",
+  calendar_list: "#ff922b", calendar_search: "#ff922b",
+  telegram_send: "#74c0fc", telegram_read: "#74c0fc",
+  // Phase 14
+  notion_list: "#f5a623",  notion_read: "#f5a623",
+  notion_create: "#f5a623", notion_append: "#f5a623",
+  slack_channels: "#e01e5a", slack_send: "#e01e5a", slack_read: "#e01e5a",
+  spotify_current: "#1db954", spotify_search: "#1db954", spotify_play: "#1db954",
+  spotify_pause: "#1db954", spotify_resume: "#1db954", spotify_next: "#1db954",
+  spotify_playlists: "#1db954",
+  whatsapp_send: "#25d366", whatsapp_list: "#25d366",
 }
 
 const TOOL_SHORT = {
-  gmail_list: "GMAIL", gmail_send: "GMAIL", gmail_read: "GMAIL",
-  browser_go: "BROWSER", browser_read: "BROWSER",
+  gmail_list: "GMAIL", gmail_send: "GMAIL", gmail_read: "GMAIL", gmail_search: "GMAIL",
+  browser_go: "BROWSER", browser_read: "BROWSER", browser_click: "BROWSER",
+  browser_fill: "BROWSER", browser_shot: "BROWSER", browser_scroll: "BROWSER",
   github_repos: "GITHUB", github_commits: "GITHUB", github_issues: "GITHUB",
-  fs_list: "FILES", fs_write: "FILES", fs_delete: "FILES",
+  github_prs: "GITHUB", github_search: "GITHUB", github_create_issue: "GITHUB",
+  fs_list: "FILES", fs_write: "FILES", fs_delete: "FILES", fs_read: "FILES",
   search_web: "SEARCH", weather_current: "WEATHER", weather_forecast: "WEATHER",
   calendar_today: "CALENDAR", calendar_create: "CALENDAR",
-  telegram_send: "TELEGRAM",
+  calendar_list: "CALENDAR", calendar_search: "CALENDAR",
+  telegram_send: "TELEGRAM", telegram_read: "TELEGRAM",
+  // Phase 14
+  notion_list: "NOTION",  notion_read: "NOTION",
+  notion_create: "NOTION", notion_append: "NOTION",
+  slack_channels: "SLACK", slack_send: "SLACK", slack_read: "SLACK",
+  spotify_current: "SPOTIFY", spotify_search: "SPOTIFY", spotify_play: "SPOTIFY",
+  spotify_pause: "SPOTIFY", spotify_resume: "SPOTIFY", spotify_next: "SPOTIFY",
+  spotify_playlists: "SPOTIFY",
+  whatsapp_send: "WHATSAPP", whatsapp_list: "WHATSAPP",
 }
 
 function ToolBadge({ tool }) {

@@ -1,0 +1,74 @@
+{
+  "name": "spotify",
+  "version": "1.0",
+  "status": "active",
+  "description": "Control Spotify playback — search, play, pause, skip, playlists",
+  "auth": {
+    "type": "oauth2",
+    "env_var": "SPOTIFY_CLIENT_ID"
+  },
+  "tools": [
+    {
+      "name": "spotify_current",
+      "description": "Show what is currently playing on Spotify",
+      "planner_hint": "Use to check what song is playing on Spotify right now. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_search",
+      "description": "Search Spotify for a song or artist",
+      "planner_hint": "Use to search Spotify for songs. Format: query=song name or artist name",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_play",
+      "description": "Play a song on Spotify by name or URI",
+      "planner_hint": "Use to play a song on Spotify. Format: query=song name. Or: uri=spotify:track:XXXXXXXX. Spotify must be open on a device first.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_pause",
+      "description": "Pause Spotify playback",
+      "planner_hint": "Use to pause the current Spotify playback. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_resume",
+      "description": "Resume Spotify playback",
+      "planner_hint": "Use to resume paused Spotify playback. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_next",
+      "description": "Skip to next track on Spotify",
+      "planner_hint": "Use to skip to the next song on Spotify. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_previous",
+      "description": "Go back to previous track on Spotify",
+      "planner_hint": "Use to go back to the previous song on Spotify. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "spotify_playlists",
+      "description": "List your Spotify playlists",
+      "planner_hint": "Use to show all playlists in the user's Spotify library. No arguments needed.",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.spotify",
+    "class": "SpotifyCapability",
+    "action_map": {
+      "spotify_current":   {"action": "current",  "parse": "none"},
+      "spotify_search":    {"action": "search",   "parse": "query"},
+      "spotify_play":      {"action": "play",     "parse": "query"},
+      "spotify_pause":     {"action": "pause",    "parse": "none"},
+      "spotify_resume":    {"action": "resume",   "parse": "none"},
+      "spotify_next":      {"action": "next",     "parse": "none"},
+      "spotify_previous":  {"action": "previous", "parse": "none"},
+      "spotify_playlists": {"action": "playlists","parse": "none"}
+    }
+  }
+}

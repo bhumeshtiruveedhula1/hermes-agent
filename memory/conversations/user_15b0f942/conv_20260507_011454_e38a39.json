@@ -1,0 +1,47 @@
+{
+  "id": "conv_20260507_011454_e38a39",
+  "title": "slack_channels",
+  "created_at": "2026-05-07T01:14:54.779053",
+  "updated_at": "2026-05-07T01:17:29.244564",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "No Notion pages found. Make sure your integration is shared with pages.",
+      "ts": "2026-05-07T01:15:10.805799",
+      "tools": [
+        "notion_list"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] Slack error: The request to the Slack API failed. (url: https://slack.com/api/conversations.list)\nThe server responded with: {'ok': False, 'error': 'missing_scope', 'needed': 'groups:read', 'provided': 'channels:history,channels:read,chat:write'}",
+      "ts": "2026-05-07T01:15:41.632925",
+      "tools": [
+        "slack_channels"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] Slack error: The request to the Slack API failed. (url: https://slack.com/api/conversations.list)\nThe server responded with: {'ok': False, 'error': 'missing_scope', 'needed': 'groups:read', 'provided': 'channels:history,channels:read,chat:write'}",
+      "ts": "2026-05-07T01:17:00.273242",
+      "tools": [
+        "slack_channels"
+      ]
+    },
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] Slack error: The request to the Slack API failed. (url: https://slack.com/api/conversations.list)\nThe server responded with: {'ok': False, 'error': 'missing_scope', 'needed': 'groups:read', 'provided': 'channels:history,channels:read,chat:write'}",
+      "ts": "2026-05-07T01:17:29.244554",
+      "tools": [
+        "slack_channels"
+      ]
+    }
+  ],
+  "tools_used": [
+    "notion_list",
+    "slack_channels"
+  ],
+  "summary": "Used slack_channels. [BLOCKED] Slack error: The request to the Slack API failed. (url: https://slack....",
+  "pinned": false,
+  "user_id": "user_15b0f942"
+}

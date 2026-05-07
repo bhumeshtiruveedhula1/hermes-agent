@@ -1,0 +1,46 @@
+{
+  "name": "notion",
+  "version": "1.0",
+  "status": "active",
+  "description": "Read and write Notion pages — list, read, create, append",
+  "auth": {
+    "type": "api_key",
+    "env_var": "NOTION_TOKEN"
+  },
+  "tools": [
+    {
+      "name": "notion_list",
+      "description": "List all Notion pages in workspace",
+      "planner_hint": "Use to list all pages accessible in the Notion workspace. No arguments needed.",
+      "requires_approval": false
+    },
+    {
+      "name": "notion_read",
+      "description": "Read a Notion page by ID",
+      "planner_hint": "Use to read the content of a Notion page. Format: page_id=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "requires_approval": false
+    },
+    {
+      "name": "notion_create",
+      "description": "Create a new Notion page",
+      "planner_hint": "Use to create a new Notion page inside a parent page or database. Format: parent_id=XXXX title=Page Title content=Optional body text",
+      "requires_approval": true
+    },
+    {
+      "name": "notion_append",
+      "description": "Append text to an existing Notion page",
+      "planner_hint": "Use to add text to an existing Notion page. Format: page_id=XXXX content=text to append",
+      "requires_approval": true
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.notion",
+    "class": "NotionCapability",
+    "action_map": {
+      "notion_list":   {"action": "list_pages",      "parse": "query"},
+      "notion_read":   {"action": "read_page",       "parse": "query"},
+      "notion_create": {"action": "create_page",     "parse": "query"},
+      "notion_append": {"action": "append_to_page",  "parse": "query"}
+    }
+  }
+}

@@ -545,7 +545,15 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
         plan     = critic.review_plan(raw_plan)
 
         # ── Frontend approval for sensitive actions ────────────────
-        APPROVAL_TOOLS = {"fs_write","fs_delete","gmail_send","calendar_create","telegram_send","github_create_issue"}
+        APPROVAL_TOOLS = {
+            "fs_write", "fs_delete",
+            "gmail_send", "calendar_create",
+            "telegram_send", "github_create_issue",
+            "whatsapp_send",    # Phase 14
+            "notion_create",    # Phase 14
+            "notion_append",    # Phase 14
+            "slack_send",       # Phase 14
+        }
         for step in plan.get("steps", []):
             tool = step.get("tool", "")
             if tool not in APPROVAL_TOOLS:

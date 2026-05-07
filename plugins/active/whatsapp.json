@@ -1,0 +1,32 @@
+{
+  "name": "whatsapp",
+  "version": "1.0",
+  "status": "active",
+  "description": "Send and receive WhatsApp messages via Twilio (no SDK — pure REST)",
+  "auth": {
+    "type": "api_key",
+    "env_var": "TWILIO_ACCOUNT_SID"
+  },
+  "tools": [
+    {
+      "name": "whatsapp_send",
+      "description": "Send a WhatsApp message",
+      "planner_hint": "Use to send a WhatsApp message. Put recipient and message in description. Format: to=+91XXXXXXXXXX body=your message here",
+      "requires_approval": true
+    },
+    {
+      "name": "whatsapp_list",
+      "description": "List recent WhatsApp messages received",
+      "planner_hint": "Use to check recent incoming WhatsApp messages.",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.whatsapp",
+    "class": "WhatsAppCapability",
+    "action_map": {
+      "whatsapp_send": {"action": "send", "parse": "query"},
+      "whatsapp_list": {"action": "list", "parse": "none"}
+    }
+  }
+}
