@@ -26,6 +26,9 @@ from core.filesystem.sandbox import SandboxResolver
 from core.conversation_store import ConversationStore
 from core.context_manager import build_contextual_input   # ← Phase 9
 from core.user_store import UserStore                      # ← Phase 11
+from core.autonomous_executor import AutonomousExecutor    # ← Phase 15
+from core.mission_queue import MissionQueue                # ← Phase 15
+from core.mission_templates import MissionTemplates        # ← Phase 15
 import tools_web
 import tools_email
 
@@ -67,6 +70,11 @@ planner   = PlannerAgent(hermes_agents.manager_llm)
 critic    = CriticAgent(hermes_agents.manager_llm)
 scheduler = Scheduler(executor=executor, agent_provider=agent_store.list_all)
 audit     = AuditLogger()
+
+# Phase 15 — Autonomous missions
+mission_queue     = MissionQueue()
+mission_templates = MissionTemplates()
+# auto_executor wired after broadcast() is defined (see below)
 
 if not agent_store.get("folder_monitor"):
     agent_store.register(ScheduledAgent(
@@ -120,6 +128,9 @@ async def websocket_stream(ws: WebSocket):
 # ── Approval Queue ────────────────────────────────────────────────────
 approval_queue: dict[str, dict] = {}
 
+# Phase 15 — wire auto_executor now that broadcast() exists
+auto_executor = AutonomousExecutor(planner, critic, executor, broadcast)
+
 # ── Models ────────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     message: str
@@ -166,6 +177,23 @@ voice_enabled: bool = False
 
 class VoiceSettingRequest(BaseModel):
     enabled: bool
+
+# Phase 15 — Autonomous mission models
+class AutonomousMissionRequest(BaseModel):
+    conv_id: str
+    prompt:  str
+    user_id: str = "user_1"
+
+class QueueMissionRequest(BaseModel):
+    conv_id:  str
+    prompt:   str
+    user_id:  str = "user_1"
+    priority: int = 0
+
+class SaveTemplateRequest(BaseModel):
+    name:        str
+    description: str
+    prompt:      str
 
 # ── Status ────────────────────────────────────────────────────────────
 @app.get("/api/status")
@@ -684,3 +712,103 @@ def _generate_summary(tools: list, result: str) -> str:
     if not tools:
         return result[:100]
     return f"Used {', '.join(tools[:3])}. {result[:80]}..."
+
+
+# ── Phase 15: Autonomous Mission ──────────────────────────────────────────
+@app.post("/api/mission/run")
+async def run_autonomous_mission(req: AutonomousMissionRequest):
+    """Execute a full multi-step mission autonomously with live WS updates."""
+    # Track this run in the mission queue so UI shows live status
+    mission_record = mission_queue.enqueue(
+        req.prompt, req.user_id, req.conv_id, priority=-1
+    )
+    mission_id = mission_record["id"]
+    mission_queue.set_status(mission_id, "running")
+
+    try:
+        async def approval_fn(tool: str, description: str, conv_id: str) -> bool:
+            approval_id = str(uuid.uuid4())[:8]
+            event       = asyncio.Event()
+            approval_queue[approval_id] = {
+                "id": approval_id, "action": tool, "tool": tool,
+                "details": {"description": description, "conv_id": conv_id},
+                "approved": None, "event": event,
+            }
+            await broadcast({
+                "type": "approval_required",
+                "id": approval_id, "action": tool, "tool": tool,
+                "details": {"description": description, "conv_id": conv_id},
+            })
+            try:
+                await asyncio.wait_for(event.wait(), timeout=60.0)
+                return bool(approval_queue[approval_id]["approved"])
+            except asyncio.TimeoutError:
+                return False
+            finally:
+                approval_queue.pop(approval_id, None)
+
+        # Set user context on executor
+        executor.current_user_id = req.user_id
+
+        result = await asyncio.wait_for(
+            auto_executor.run_mission(
+                mission_prompt=req.prompt,
+                conv_id=req.conv_id,
+                user_id=req.user_id,
+                approval_fn=approval_fn,
+            ),
+            timeout=300.0,  # 5 minute hard cap — prevents infinite hangs
+        )
+        final_status = "done" if result.get("success") else "failed"
+        mission_queue.set_status(mission_id, final_status, result.get("final_output", ""))
+        await broadcast({"type": "queue_updated"})
+        return result
+    except asyncio.TimeoutError:
+        msg = "[TIMEOUT] Mission exceeded 5 minute limit and was stopped."
+        mission_queue.set_status(mission_id, "failed", msg)
+        await broadcast({"type": "mission_failed", "conv_id": req.conv_id,
+                         "error": msg, "ts": datetime.utcnow().isoformat()})
+        await broadcast({"type": "queue_updated"})
+        return {"success": False, "steps_taken": 0, "results": [], "final_output": msg}
+    except Exception as e:
+        mission_queue.set_status(mission_id, "failed", str(e))
+        await broadcast({"type": "queue_updated"})
+        return {"success": False, "steps_taken": 0, "results": [], "final_output": str(e)}
+
+
+# ── Phase 15: Mission Queue ───────────────────────────────────────────────
+@app.get("/api/queue")
+def get_queue(user_id: str = "user_1"):
+    return mission_queue.list_all(user_id)
+
+@app.post("/api/queue")
+async def add_to_queue(req: QueueMissionRequest):
+    mission = mission_queue.enqueue(req.prompt, req.user_id, req.conv_id, req.priority)
+    await broadcast({"type": "queue_updated", "mission": mission})
+    return mission
+
+@app.delete("/api/queue/{mission_id}")
+async def remove_from_queue(mission_id: str):
+    mission_queue.delete(mission_id)
+    await broadcast({"type": "queue_updated"})
+    return {"ok": True}
+
+@app.post("/api/queue/clear")
+async def clear_done_missions():
+    mission_queue.clear_done()
+    return {"ok": True}
+
+
+# ── Phase 15: Mission Templates ───────────────────────────────────────────
+@app.get("/api/templates")
+def get_templates():
+    return mission_templates.list_all()
+
+@app.post("/api/templates")
+def save_template(req: SaveTemplateRequest):
+    return mission_templates.save(req.name, req.description, req.prompt)
+
+@app.delete("/api/templates/{template_id}")
+def delete_template(template_id: str):
+    success = mission_templates.delete(template_id)
+    return {"ok": success}

@@ -101,5 +101,29 @@
     "created_at": "2026-05-07T01:44:14.357452",
     "updated_at": "2026-05-07T01:57:20.525023",
     "message_count": 4
+  },
+  {
+    "id": "conv_20260507_023714_93c511",
+    "title": "Searched web + Wrote file",
+    "summary": "Used search_web, fs_write. SOURCE: The AI Race: Trending News, Latest Updates, Analysis\nCONTENT: \n         ...",
+    "tools_used": [
+      "search_web",
+      "fs_write",
+      "telegram_send"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-07T02:37:14.905311",
+    "updated_at": "2026-05-07T02:40:44.826999",
+    "message_count": 4
+  },
+  {
+    "id": "conv_20260507_024400_d716fa",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [],
+    "pinned": false,
+    "created_at": "2026-05-07T02:44:00.213071",
+    "updated_at": "2026-05-07T02:44:00.213076",
+    "message_count": 0
   }
 ]

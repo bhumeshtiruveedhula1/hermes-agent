@@ -1,0 +1,42 @@
+[
+  {
+    "id": "tpl_morning",
+    "name": "Morning Briefing",
+    "description": "Check emails, calendar, and weather",
+    "prompt": "Check my unread emails, show today's calendar events, and get the current weather. Summarize everything in one response.",
+    "builtin": true,
+    "created_at": "2026-01-01T00:00:00+00:00"
+  },
+  {
+    "id": "tpl_research",
+    "name": "Research & Save",
+    "description": "Search web, summarize, save to file",
+    "prompt": "Search the web for the latest news on AI agents. Summarize the top 3 results. Save the summary to /documents/ai_research.txt",
+    "builtin": true,
+    "created_at": "2026-01-01T00:00:00+00:00"
+  },
+  {
+    "id": "tpl_github_report",
+    "name": "GitHub Report",
+    "description": "Check repos, issues, and PRs",
+    "prompt": "List my GitHub repositories. For each repo, check open issues and pull requests. Summarize the status.",
+    "builtin": true,
+    "created_at": "2026-01-01T00:00:00+00:00"
+  },
+  {
+    "id": "tpl_notion_slack",
+    "name": "Notion → Slack",
+    "description": "Read a Notion page and share to Slack",
+    "prompt": "List my Notion pages. Read the most recent one. Send a summary of it to the Slack general channel.",
+    "builtin": true,
+    "created_at": "2026-01-01T00:00:00+00:00"
+  },
+  {
+    "id": "tpl_files_report",
+    "name": "Files Report",
+    "description": "List files and save an inventory",
+    "prompt": "List all files in /documents. Write a summary inventory to /documents/inventory.txt with the file names and count.",
+    "builtin": true,
+    "created_at": "2026-01-01T00:00:00+00:00"
+  }
+]

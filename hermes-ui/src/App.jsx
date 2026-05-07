@@ -11,6 +11,7 @@ import Plugins from "./pages/Plugins"
 import History from "./pages/History"
 import Login from "./pages/Login"
 import Admin from "./pages/Admin"
+import Missions from "./pages/Missions"
 import "./App.css"
 import ApprovalModal from "./components/ApprovalModal"
 
@@ -23,7 +24,7 @@ function applyUserHeader(userId) {
   }
 }
 
-const BASE_TABS = ["Overview", "Chat", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History"]
+const BASE_TABS = ["Overview", "Chat", "Missions", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History"]
 
 export default function App() {
   const [tab, setTab]                     = useState("Overview")
@@ -32,6 +33,8 @@ export default function App() {
   const [ws, setWs]                       = useState(null)
   const [liveEvents, setLiveEvents]       = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
+  const [missionEvents, setMissionEvents]  = useState([])   // Phase 15
+  const [queueTick, setQueueTick]          = useState(0)    // Phase 15: WS queue push
 
   // Phase 11: Auth state
   const [user, setUser] = useState(() => {
@@ -84,6 +87,12 @@ export default function App() {
       const data = JSON.parse(e.data)
       if (data.type === "ping") return
       setLiveEvents(prev => [data, ...prev].slice(0, 100))
+      if (data.type.startsWith("mission_")) {
+        setMissionEvents(prev => [data, ...prev].slice(0, 200))
+      }
+      if (data.type === "queue_updated") {          // Phase 15: instant queue push
+        setQueueTick(t => t + 1)
+      }
       if (data.type === "approval_required") {
         setPendingApprovals(prev => [...prev, data])
       }
@@ -146,8 +155,9 @@ export default function App() {
         <div className="ticker">
           <div className="ticker-inner">
             {[
-              ["PHASE",    "14 COMPLETE — WHATSAPP · NOTION · SPOTIFY · SLACK"],
+              ["PHASE",    "15 COMPLETE — AUTONOMOUS MISSION PLANNER LIVE"],
               ["MODEL",    "QWEN2.5-CODER:14B — RTX 4060 HYBRID"],
+              ["MISSIONS", "MULTI-STEP · QUEUE · TEMPLATES · LIVE FEED"],
               ["AUDIT",    "ALL ACTIONS LOGGED"],
               ["SANDBOX",  `${user.name.toUpperCase()} — /DOCUMENTS MOUNTED`],
               ["SECURITY", "EXECUTION GATE ACTIVE"],
@@ -174,6 +184,7 @@ export default function App() {
         <main className="main">
           {tab === "Overview"  && <Overview status={status} liveEvents={liveEvents} />}
           {tab === "Chat"      && <Chat user={user} />}
+          {tab === "Missions"  && <Missions liveEvents={missionEvents} queueTick={queueTick} />}
           {tab === "Agents"    && <Agents liveEvents={liveEvents} />}
           {tab === "Files"     && <Files user={user} />}
           {tab === "Audit Log" && <AuditLog liveEvents={liveEvents} />}
