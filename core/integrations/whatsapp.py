@@ -63,14 +63,20 @@ class WhatsAppCapability:
         import re
 
         # Parse: to=+91XXXXXXXXXX body=hello world
-        to_match   = re.search(r'to=([\+\d]+)', query)
+        # Require at least 7 digits so we reject "+91XXXXXXXXXX" planner placeholders
+        to_match   = re.search(r'to=(\+\d{7,15})', query)
         body_match = re.search(r'body=(.+)', query)
 
-        to   = to_match.group(1).strip()   if to_match   else cfg["to_number"]
+        to   = to_match.group(1).strip()   if to_match   else ""
         body = body_match.group(1).strip() if body_match else query
 
+        # Fallback: if no valid to= found (or only a format placeholder),
+        # use the pre-configured TWILIO_WHATSAPP_TO from .env
+        if not to or re.search(r'X{3,}', to):
+            to = cfg["to_number"]
+
         if not to:
-            return "[ERROR] No recipient number. Use: to=+91XXXXXXXXXX body=message"
+            return "[ERROR] No recipient number. Set TWILIO_WHATSAPP_TO in .env or use: to=+919876543210 body=message"
         if not body:
             return "[ERROR] Message body is empty"
 

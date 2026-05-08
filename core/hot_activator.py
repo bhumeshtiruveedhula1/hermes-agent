@@ -40,6 +40,15 @@ class HotActivator:
         """
         print(f"[ACTIVATOR] Activating: {integration_name}")
 
+        # Normalise to a valid Python module identifier — the builder writes files with
+        # this same normalisation (spaces→_, hyphens→_, lowercase).
+        # e.g. "add discord in chat" → "add_discord_in_chat"
+        plugin_name = (
+            integration_name.lower().strip()
+            .replace(" ", "_")
+            .replace("-", "_")
+        )
+
         # ── Step 1: Reload .env into os.environ ──────────────────────
         try:
             from dotenv import load_dotenv
@@ -50,7 +59,7 @@ class HotActivator:
             self._manual_env_reload()
 
         # ── Step 2: Reload Python module ─────────────────────────────
-        module_name = f"core.integrations.{integration_name}"
+        module_name = f"core.integrations.{plugin_name}"
         try:
             if module_name in sys.modules:
                 module = importlib.reload(sys.modules[module_name])
@@ -63,7 +72,7 @@ class HotActivator:
             print(f"[ACTIVATOR] {msg}")
             self._broadcast_sync({
                 "type":  "integration_failed",
-                "name":  integration_name,
+                "name":  integration_name,  # human-readable for UI
                 "error": msg
             })
             return {"success": False, "message": msg, "tools": [], "test_result": ""}
@@ -73,11 +82,11 @@ class HotActivator:
         try:
             from core.plugin_loader import PluginLoader
             # Drop the old plugin entry (if any) to avoid stale state
-            PluginLoader._plugins.pop(integration_name, None)
+            PluginLoader._plugins.pop(plugin_name, None)
             # Force reload flag — load() won't run if _loaded is True
             PluginLoader._loaded = False
             # Re-load only if the JSON spec file exists
-            json_path = Path(f"plugins/active/{integration_name}.json")
+            json_path = Path(f"plugins/active/{plugin_name}.json")
             if json_path.exists():
                 PluginLoader.load()   # re-scans all active plugins
                 print(f"[ACTIVATOR] PluginLoader reloaded ✓ — "
@@ -93,14 +102,14 @@ class HotActivator:
         tools: list[str] = []
         try:
             spec  = json.loads(
-                Path(f"plugins/active/{integration_name}.json").read_text(encoding="utf-8")
+                Path(f"plugins/active/{plugin_name}.json").read_text(encoding="utf-8")
             )
             tools = [t["name"] for t in spec.get("tools", [])]
         except Exception as e:
             print(f"[ACTIVATOR] Could not read tools from spec: {e}")
 
         # ── Step 5: Smoke test ────────────────────────────────────────
-        test_result = self._smoke_test(integration_name, tools)
+        test_result = self._smoke_test(plugin_name, tools)
         print(f"[ACTIVATOR] Smoke test → {test_result}")
 
         # ── Step 6: Broadcast integration_live ───────────────────────
