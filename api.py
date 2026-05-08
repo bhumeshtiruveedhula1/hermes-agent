@@ -29,6 +29,11 @@ from core.user_store import UserStore                      # ← Phase 11
 from core.autonomous_executor import AutonomousExecutor    # ← Phase 15
 from core.mission_queue import MissionQueue                # ← Phase 15
 from core.mission_templates import MissionTemplates        # ← Phase 15
+from core.integration_knowledge import get_known, get_all_known_names  # ← Phase 16
+from core.api_researcher import APIResearcher              # ← Phase 16
+from core.integration_builder import IntegrationBuilder    # ← Phase 16
+from core.credential_watcher import get_watcher            # ← Phase 16
+from core.hot_activator import HotActivator                # ← Phase 16
 import tools_web
 import tools_email
 
@@ -75,6 +80,11 @@ audit     = AuditLogger()
 mission_queue     = MissionQueue()
 mission_templates = MissionTemplates()
 # auto_executor wired after broadcast() is defined (see below)
+
+# Phase 16 — Auto-Integration Builder instances (broadcast wired below too)
+integration_builder = IntegrationBuilder(hermes_agents.manager_llm)
+credential_watcher  = get_watcher()
+# hot_activator wired after broadcast() is defined (see below)
 
 if not agent_store.get("folder_monitor"):
     agent_store.register(ScheduledAgent(
@@ -130,6 +140,9 @@ approval_queue: dict[str, dict] = {}
 
 # Phase 15 — wire auto_executor now that broadcast() exists
 auto_executor = AutonomousExecutor(planner, critic, executor, broadcast)
+
+# Phase 16 — wire hot_activator now that broadcast() exists
+hot_activator = HotActivator(broadcast_fn=broadcast)
 
 # ── Models ────────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
@@ -194,6 +207,11 @@ class SaveTemplateRequest(BaseModel):
     name:        str
     description: str
     prompt:      str
+
+# Phase 16 — Auto-Integration Builder model
+class BuildIntegrationRequest(BaseModel):
+    name:    str
+    user_id: str = "user_1"
 
 # ── Status ────────────────────────────────────────────────────────────
 @app.get("/api/status")
@@ -538,6 +556,57 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
                 conv_store.add_message(req.conv_id, "hermes", result, [], user_id=user_id)
                 return {"plan": {}, "result": result, "tools_used": [], "corrections": corrections}
 
+        # ── Phase 16: Auto-Integration intercept (← before planner) ────────
+        # Detects "add X", "connect X", "install X" and routes to builder.
+        # Must come AFTER plugin-designer check and BEFORE recall/planner.
+        import re as _re
+        _int_match = _re.search(
+            r'^(?:add|install|connect|setup|integrate|enable)\s+'
+            r'(.+?)(?:\s+(?:to\s+hermes|integration|plugin|capability))?\s*$',
+            corrected_msg.lower()
+        )
+        # Bug 4 guard: skip if " to " present — user is adding something TO somewhere
+        _has_destination = " to " in corrected_msg.lower()
+        if _int_match and not _has_destination:
+            _candidate = _int_match.group(1).strip()
+            # Exclude common false-positives — things that are never integrations
+            _NON_INT = {
+                "text", "file", "note", "task", "event", "message",
+                "email", "item", "entry", "row", "line", "user",
+                "content", "data", "record", "column", "word",
+                "sentence", "paragraph", "comment", "reminder",
+                "appointment", "meeting", "contact"
+            }
+            # Extra guard: candidate must look like a service name (no spaces unless known)
+            _is_single_word = " " not in _candidate
+            _is_known_multi = any(
+                _candidate.startswith(k) for k in
+                ["open weather", "tomorrow.io", "coin gecko", "news api", "alpha vantage"]
+            )
+            if (_candidate not in _NON_INT and 1 < len(_candidate) < 40
+                    and (_is_single_word or _is_known_multi)):
+                try:
+                    _build_result = await _build_integration_internal(_candidate, req.conv_id)
+                    result = _build_result.get("message", str(_build_result))
+                    conv_store.add_message(
+                        req.conv_id, "hermes", result,
+                        ["integration_builder"], user_id=user_id
+                    )
+                    await broadcast({
+                        "type":    "conversation_updated",
+                        "conv_id": req.conv_id,
+                        "tools":   ["integration_builder"]
+                    })
+                    return {
+                        "plan":       {},
+                        "result":     result,
+                        "tools_used": ["integration_builder"],
+                        "corrections": corrections
+                    }
+                except Exception as _ie:
+                    # Non-fatal — fall through to normal planner path
+                    print(f"[CHAT] Integration intercept failed: {_ie}")
+
         # ── Recall shortcut — deterministic memory answer ─────────────────
         # Qwen3:8B cannot reliably pick tool=null for recall questions via
         # prompt alone. We intercept deterministically BEFORE calling the
@@ -812,3 +881,223 @@ def save_template(req: SaveTemplateRequest):
 def delete_template(template_id: str):
     success = mission_templates.delete(template_id)
     return {"ok": success}
+
+
+# ── Phase 16: Auto-Integration Builder endpoints ─────────────────────────────
+
+async def _build_integration_internal(name: str, conv_id: str) -> dict:
+    """
+    Internal helper — called from chat_mission intercept.
+    Delegates to the main build_integration endpoint handler.
+    """
+    req = BuildIntegrationRequest(name=name)
+    return await build_integration(req)
+
+
+@app.post("/api/integrations/build")
+async def build_integration(req: BuildIntegrationRequest):
+    """
+    Main Phase 16 endpoint.
+    Detects known vs unknown integration and:
+      • Known, already deployed  → starts credential watcher or activates immediately
+      • Known, not deployed      → builds zero-cred integration and activates
+      • Unknown                  → researches API → builds files → watches/activates
+    """
+    name = req.name.lower().strip()
+
+    await broadcast({
+        "type":    "integration_build_started",
+        "name":    name,
+        "message": f"Starting integration build for: {name}..."
+    })
+
+    known = get_known(name)
+
+    # ── KNOWN INTEGRATION ───────────────────────────────────────────────────
+    if known:
+        env_vars      = known.get("env_vars", {})
+        required_vars = list(env_vars.keys())
+        zero_cred     = known.get("zero_cred", False)
+
+        await broadcast({
+            "type":    "integration_building",
+            "name":    name,
+            "message": f"Using pre-built knowledge for {name}..."
+        })
+
+        # Zero-cred: activate immediately
+        if zero_cred or not required_vars:
+            result = hot_activator.activate(name)
+            msg = (
+                f"✅ {name} is live! No credentials needed. "
+                f"Tools: {', '.join(result.get('tools', []))}"
+            )
+            return {
+                "status":    "live",
+                "name":      name,
+                "zero_cred": True,
+                "message":   msg,
+                "tools":     result.get("tools", [])
+            }
+
+        # Has credentials — check if any are already in .env
+        from core.credential_watcher import _check_vars
+        all_present, missing = _check_vars(required_vars)
+
+        if all_present:
+            # All creds already set — activate immediately
+            result = hot_activator.activate(name)
+            msg = (
+                f"✅ {name} credentials already configured! "
+                f"Activated. Tools: {', '.join(result.get('tools', []))}"
+            )
+            return {
+                "status":  "live",
+                "name":    name,
+                "message": msg,
+                "tools":   result.get("tools", [])
+            }
+
+        # Missing creds — start watcher, tell user what to add
+        def _on_creds_detected(integration_name: str):
+            hot_activator.activate(integration_name)
+
+        credential_watcher.start_watching(
+            integration_name=name,
+            required_vars=required_vars,
+            activation_callback=_on_creds_detected
+        )
+
+        instructions = {v: env_vars[v].get("where", "") for v in missing}
+        msg_lines = [
+            f"🔑 {name} needs credentials in your .env file.",
+            f"Hermes will auto-activate when it detects them (checking every 15s).",
+            "",
+            "Add these to .env:",
+        ]
+        for var in missing:
+            info  = env_vars[var]
+            fixed = info.get("fixed_value", "")
+            if fixed:
+                msg_lines.append(f"  {var}={fixed}")
+            else:
+                msg_lines.append(f"  {var}=<your value>  # {info.get('where','')}")
+
+        await broadcast({
+            "type":          "integration_waiting_creds",
+            "name":          name,
+            "env_vars":      env_vars,
+            "required_vars": missing,
+            "message":       "\n".join(msg_lines)
+        })
+
+        return {
+            "status":         "waiting_credentials",
+            "name":           name,
+            "env_vars":       env_vars,
+            "required_vars":  missing,
+            "instructions":   instructions,
+            "message":        "\n".join(msg_lines)
+        }
+
+    # ── UNKNOWN INTEGRATION ─────────────────────────────────────────────────
+    try:
+        await broadcast({
+            "type":    "integration_researching",
+            "name":    name,
+            "message": f"Searching API documentation for {name}..."
+        })
+
+        researcher  = APIResearcher(hermes_agents.manager_llm, tools_web.search_web)
+        api_info    = researcher.research(name)
+
+        await broadcast({
+            "type":    "integration_building",
+            "name":    name,
+            "message": f"Writing integration code for {name}..."
+        })
+
+        build_result = integration_builder.build(name, api_info)
+
+        if not build_result["success"]:
+            err = str(build_result["errors"])
+            await broadcast({
+                "type": "integration_failed", "name": name, "error": err
+            })
+            return {"status": "failed", "name": name, "errors": build_result["errors"]}
+
+        # Zero-cred built — activate immediately
+        if api_info.get("zero_cred") or not api_info.get("env_vars"):
+            result = hot_activator.activate(name)
+            msg = (
+                f"✅ {name} is live immediately! No credentials needed. "
+                f"Tools: {', '.join(result.get('tools', []))}"
+            )
+            return {
+                "status":    "live",
+                "name":      name,
+                "zero_cred": True,
+                "message":   msg,
+                "tools":     result.get("tools", [])
+            }
+
+        # Has credentials — start watcher
+        env_vars      = api_info.get("env_vars", {})
+        required_vars = list(env_vars.keys())
+
+        def _on_creds_detected_unknown(integration_name: str):
+            hot_activator.activate(integration_name)
+
+        credential_watcher.start_watching(
+            integration_name=name,
+            required_vars=required_vars,
+            activation_callback=_on_creds_detected_unknown
+        )
+
+        msg = (
+            f"🔍 Built {name} integration from web research. "
+            f"Add the following to .env and Hermes will auto-activate:\n"
+            + "\n".join(f"  {v}=<your value>" for v in required_vars)
+        )
+
+        await broadcast({
+            "type":          "integration_waiting_creds",
+            "name":          name,
+            "env_vars":      env_vars,
+            "required_vars": required_vars,
+            "message":       msg
+        })
+
+        return {
+            "status":              "waiting_credentials",
+            "name":               name,
+            "built_from":         "research",
+            "env_vars":           env_vars,
+            "required_vars":      required_vars,
+            "installed_packages": build_result["installed_packages"],
+            "message":            msg
+        }
+
+    except Exception as e:
+        await broadcast({"type": "integration_failed", "name": name, "error": str(e)})
+        return {"status": "failed", "name": name, "error": str(e)}
+
+
+@app.get("/api/integrations/watching")
+def get_watching_integrations():
+    """List integrations currently waiting for credentials."""
+    return credential_watcher.get_watching()
+
+
+@app.post("/api/integrations/{name}/cancel")
+async def cancel_integration_watch(name: str):
+    """Cancel credential watching for an integration."""
+    credential_watcher.stop_watching(name)
+    await broadcast({"type": "integration_cancelled", "name": name})
+    return {"ok": True}
+
+
+@app.get("/api/integrations/known")
+def get_known_integrations():
+    """List all integration names Hermes has pre-built knowledge for."""
+    return get_all_known_names()

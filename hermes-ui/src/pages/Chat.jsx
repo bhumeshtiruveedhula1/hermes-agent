@@ -21,6 +21,12 @@ const TOOL_COLORS = {
   spotify_pause: "#1db954", spotify_resume: "#1db954", spotify_next: "#1db954",
   spotify_playlists: "#1db954",
   whatsapp_send: "#25d366", whatsapp_list: "#25d366",
+  // Phase 16
+  integration_builder: "#c8ff00",
+  crypto_price: "#f7931a", crypto_top: "#f7931a",
+  trivia_fact: "#ff9ff3",
+  tell_joke: "#ffd93d", joke_tell: "#ffd93d",
+  exchange_rate: "#00bfff", currency_convert: "#00bfff",
 }
 
 const TOOL_SHORT = {
@@ -42,6 +48,12 @@ const TOOL_SHORT = {
   spotify_pause: "SPOTIFY", spotify_resume: "SPOTIFY", spotify_next: "SPOTIFY",
   spotify_playlists: "SPOTIFY",
   whatsapp_send: "WHATSAPP", whatsapp_list: "WHATSAPP",
+  // Phase 16
+  integration_builder: "BUILDER",
+  crypto_price: "CRYPTO",  crypto_top: "CRYPTO",
+  trivia_fact: "TRIVIA",
+  tell_joke: "JOKES", joke_tell: "JOKES",
+  exchange_rate: "FOREX", currency_convert: "FOREX",
 }
 
 function ToolBadge({ tool }) {

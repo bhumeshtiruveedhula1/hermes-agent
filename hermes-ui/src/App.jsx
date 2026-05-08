@@ -8,6 +8,7 @@ import Files from "./pages/Files"
 import AuditLog from "./pages/AuditLog"
 import Browser from "./pages/Browser"
 import Plugins from "./pages/Plugins"
+import Integrations from "./pages/Integrations"
 import History from "./pages/History"
 import Login from "./pages/Login"
 import Admin from "./pages/Admin"
@@ -24,7 +25,7 @@ function applyUserHeader(userId) {
   }
 }
 
-const BASE_TABS = ["Overview", "Chat", "Missions", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History"]
+const BASE_TABS = ["Overview", "Chat", "Missions", "Agents", "Files", "Audit Log", "Browser", "Plugins", "Integrations", "History"]
 
 export default function App() {
   const [tab, setTab]                     = useState("Overview")
@@ -35,6 +36,7 @@ export default function App() {
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [missionEvents, setMissionEvents]  = useState([])   // Phase 15
   const [queueTick, setQueueTick]          = useState(0)    // Phase 15: WS queue push
+  const [integrationEvents, setIntegrationEvents] = useState([])  // Phase 16
 
   // Phase 11: Auth state
   const [user, setUser] = useState(() => {
@@ -89,6 +91,9 @@ export default function App() {
       setLiveEvents(prev => [data, ...prev].slice(0, 100))
       if (data.type.startsWith("mission_")) {
         setMissionEvents(prev => [data, ...prev].slice(0, 200))
+      }
+      if (data.type.startsWith("integration_")) {          // Phase 16
+        setIntegrationEvents(prev => [data, ...prev].slice(0, 200))
       }
       if (data.type === "queue_updated") {          // Phase 15: instant queue push
         setQueueTick(t => t + 1)
@@ -155,7 +160,8 @@ export default function App() {
         <div className="ticker">
           <div className="ticker-inner">
             {[
-              ["PHASE",    "15 COMPLETE — AUTONOMOUS MISSION PLANNER LIVE"],
+              ["PHASE",    "16 COMPLETE — AUTO-INTEGRATION BUILDER LIVE"],
+              ["BUILDER",  "ADD ANY API IN ONE SENTENCE — HERMES BUILDS IT"],
               ["MODEL",    "QWEN2.5-CODER:14B — RTX 4060 HYBRID"],
               ["MISSIONS", "MULTI-STEP · QUEUE · TEMPLATES · LIVE FEED"],
               ["AUDIT",    "ALL ACTIONS LOGGED"],
@@ -182,15 +188,16 @@ export default function App() {
         </nav>
 
         <main className="main">
-          {tab === "Overview"  && <Overview status={status} liveEvents={liveEvents} />}
-          {tab === "Chat"      && <Chat user={user} />}
-          {tab === "Missions"  && <Missions liveEvents={missionEvents} queueTick={queueTick} />}
-          {tab === "Agents"    && <Agents liveEvents={liveEvents} />}
-          {tab === "Files"     && <Files user={user} />}
-          {tab === "Audit Log" && <AuditLog liveEvents={liveEvents} />}
-          {tab === "Browser"   && <Browser />}
-          {tab === "Plugins"   && <Plugins />}
-          {tab === "History"   && <History />}
+          {tab === "Overview"      && <Overview status={status} liveEvents={liveEvents} />}
+          {tab === "Chat"          && <Chat user={user} />}
+          {tab === "Missions"      && <Missions liveEvents={missionEvents} queueTick={queueTick} />}
+          {tab === "Agents"        && <Agents liveEvents={liveEvents} />}
+          {tab === "Files"         && <Files user={user} />}
+          {tab === "Audit Log"     && <AuditLog liveEvents={liveEvents} />}
+          {tab === "Browser"       && <Browser />}
+          {tab === "Plugins"       && <Plugins />}
+          {tab === "Integrations"  && <Integrations liveEvents={integrationEvents} />}
+          {tab === "History"       && <History />}
           {tab === "Admin" && user.role === "admin" && <Admin user={user} />}
         </main>
 
