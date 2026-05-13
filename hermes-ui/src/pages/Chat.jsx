@@ -21,6 +21,8 @@ const TOOL_COLORS = {
   spotify_pause: "#1db954", spotify_resume: "#1db954", spotify_next: "#1db954",
   spotify_playlists: "#1db954",
   whatsapp_send: "#25d366", whatsapp_list: "#25d366",
+  // Phase 17
+  skill_loaded: "#c8ff00",
 }
 
 const TOOL_SHORT = {
@@ -42,6 +44,8 @@ const TOOL_SHORT = {
   spotify_pause: "SPOTIFY", spotify_resume: "SPOTIFY", spotify_next: "SPOTIFY",
   spotify_playlists: "SPOTIFY",
   whatsapp_send: "WHATSAPP", whatsapp_list: "WHATSAPP",
+  // Phase 17
+  skill_loaded: "SKILL",
 }
 
 function ToolBadge({ tool }) {

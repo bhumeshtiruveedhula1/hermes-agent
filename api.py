@@ -29,6 +29,9 @@ from core.user_store import UserStore                      # ← Phase 11
 from core.autonomous_executor import AutonomousExecutor    # ← Phase 15
 from core.mission_queue import MissionQueue                # ← Phase 15
 from core.mission_templates import MissionTemplates        # ← Phase 15
+from core.hermes_db import get_db                          # ← Phase 17
+from core.user_memory import UserMemory                    # ← Phase 17
+from core.skill_memory import SkillMemory                  # ← Phase 17
 import tools_web
 import tools_email
 
@@ -38,6 +41,8 @@ permission_store = PermissionStore()
 credential_vault = CredentialVault()
 conv_store       = ConversationStore()
 user_store       = UserStore()                             # Phase 11
+hermes_db        = get_db()                                # Phase 17: SQLite store
+skill_memory     = SkillMemory()                           # Phase 17: skill cache
 
 permission_store.grant("search_web",     "default")
 permission_store.grant("check_inbox",    "default")
@@ -517,10 +522,20 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
         # here since current message isn't in the list yet).
         conv_before = conv_store.get(req.conv_id)
         conv_messages_before = conv_before.get("messages", []) if conv_before else []
-        contextual_input = build_contextual_input(corrected_msg, conv_messages_before)
+        contextual_input = build_contextual_input(
+            corrected_msg,
+            conv_messages_before,
+            user_id=user_id,
+            llm=hermes_agents.manager_llm,   # Phase 17: enables compression + memory
+        )
 
-        # Now save user message (AFTER context snapshot)
+        # Now save user message to BOTH stores (AFTER context snapshot)
+        # Phase 17: dual-write — JSON store for backward compat, SQLite for search
         conv_store.add_message(req.conv_id, "user", req.message)
+        try:
+            hermes_db.add_message(req.conv_id, "user", req.message, user_id=user_id)
+        except Exception:
+            pass  # SQLite write failure never breaks existing flow
 
         # Plugin designer shortcut
         msg_lower = corrected_msg.lower()
@@ -568,9 +583,22 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
                     "result": result, "tools_used": tools_used, "corrections": corrections
                 }
 
-        # Plan using contextual input (has history prepended)
-        raw_plan = planner.create_plan(contextual_input)
-        plan     = critic.review_plan(raw_plan)
+        # Phase 17: check if user message matches a saved skill (skip replanning)
+        matched_skill = skill_memory.find_matching_skill(corrected_msg)
+        if matched_skill:
+            plan = {
+                "goal":  matched_skill["description"],
+                "steps": matched_skill["steps"]
+            }
+            await broadcast({
+                "type": "skill_loaded",
+                "name": matched_skill["name"],
+                "conv_id": req.conv_id,
+            })
+        else:
+            # Plan using contextual input (has history + memory prepended)
+            raw_plan = planner.create_plan(contextual_input)
+            plan     = critic.review_plan(raw_plan)
 
         # ── Frontend approval for sensitive actions ────────────────
         APPROVAL_TOOLS = {
@@ -629,7 +657,36 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
             except Exception:
                 pass  # TTS failure must never break the response
 
+        # Phase 17: dual-write — both conv_store (JSON) and hermes_db (SQLite)
         conv_store.add_message(req.conv_id, "hermes", result, tools_used, user_id=user_id)
+        try:
+            hermes_db.add_message(req.conv_id, "hermes", result, tools_used, user_id)
+        except Exception:
+            pass  # SQLite write failure never breaks existing flow
+
+        # Phase 17: check if mission qualifies as a reusable skill
+        try:
+            if skill_memory.should_save(plan.get("steps", []), result):
+                skill_meta = skill_memory.generate_name_and_triggers(
+                    plan.get("steps", []), hermes_agents.manager_llm
+                )
+                await broadcast({
+                    "type":           "skill_candidate",
+                    "conv_id":        req.conv_id,
+                    "name":           skill_meta["name"],
+                    "description":    skill_meta["description"],
+                    "steps":          plan.get("steps", []),
+                    "trigger_phrases": skill_meta.get("trigger_phrases", []),
+                })
+        except Exception:
+            pass  # skill detection must never crash chat flow
+
+        # Phase 17: proactive memory extraction — scan this turn for saveable user facts
+        try:
+            um = UserMemory(user_id)
+            um.proactive_extract(req.message, result, hermes_agents.manager_llm)
+        except Exception:
+            pass  # proactive extraction must never crash chat flow
 
         # Auto-title after first exchange
         conv = conv_store.get(req.conv_id, user_id=user_id)
@@ -812,3 +869,90 @@ def save_template(req: SaveTemplateRequest):
 def delete_template(template_id: str):
     success = mission_templates.delete(template_id)
     return {"ok": success}
+
+
+# ── Phase 17: Memory & Skills API ────────────────────────────────────────────
+
+class MemoryEntryRequest(BaseModel):
+    content:  str
+    category: str = "general"
+
+class ProfileUpdateRequest(BaseModel):
+    profile_md: Optional[str] = None
+    soul_md:    Optional[str] = None
+
+class SkillSaveRequest(BaseModel):
+    name:            str
+    description:     str
+    steps:           list
+    trigger_phrases: list = []
+
+
+@app.get("/api/memory")
+def get_memory(request: Request):
+    """Return all saved memory entries for this user."""
+    return UserMemory(get_user_id(request)).get_all()
+
+@app.post("/api/memory")
+async def add_memory_entry(req: MemoryEntryRequest, request: Request):
+    """Add a memory entry. Rejects injection attempts."""
+    result = UserMemory(get_user_id(request)).add(req.content, req.category)
+    return result
+
+@app.delete("/api/memory/{entry_id}")
+async def delete_memory_entry(entry_id: str, request: Request):
+    """Delete a specific memory entry."""
+    UserMemory(get_user_id(request)).delete(entry_id)
+    return {"ok": True}
+
+@app.get("/api/memory/search")
+def search_memory(q: str, request: Request, limit: int = 10):
+    """Full-text search across all stored messages."""
+    return hermes_db.search_messages(q, get_user_id(request), limit)
+
+@app.get("/api/profile")
+def get_user_profile(request: Request):
+    """Return user profile_md and soul_md."""
+    um = UserMemory(get_user_id(request))
+    return {"profile_md": um.get_profile_md(), "soul_md": um.get_soul_md()}
+
+@app.post("/api/profile")
+async def update_user_profile(req: ProfileUpdateRequest, request: Request):
+    """Update profile_md and/or soul_md."""
+    um = UserMemory(get_user_id(request))
+    if req.profile_md is not None:
+        um.update_profile_md(req.profile_md)
+    if req.soul_md is not None:
+        um.update_soul_md(req.soul_md)
+    return {"ok": True}
+
+@app.get("/api/skills")
+def list_skills_endpoint():
+    """List all saved skills sorted by use count."""
+    return skill_memory.list_all()
+
+@app.post("/api/skills")
+async def save_skill_endpoint(req: SkillSaveRequest):
+    """Save a skill (called from UI after skill_candidate broadcast)."""
+    result = skill_memory.save(
+        name=req.name,
+        description=req.description,
+        steps=req.steps,
+        trigger_phrases=req.trigger_phrases,
+    )
+    await broadcast({"type": "skill_saved", "name": req.name})
+    return result
+
+@app.delete("/api/skills/{name}")
+async def delete_skill_endpoint(name: str):
+    """Delete a skill by name."""
+    skill_memory.delete(name)
+    await broadcast({"type": "skill_deleted", "name": name})
+    return {"ok": True}
+
+@app.post("/api/migration/run")
+async def run_migration():
+    """Migrate existing JSON conversations to SQLite. Idempotent — safe to call multiple times."""
+    from core.db_migration import migrate_json_to_sqlite
+    result = migrate_json_to_sqlite()
+    return result
