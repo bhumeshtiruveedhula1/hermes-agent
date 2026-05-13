@@ -6,3 +6,5 @@ prompt_toolkit
 notion-client
 spotipy
 slack-sdk
+python-dotenv
+watchdog

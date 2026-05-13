@@ -257,6 +257,8 @@ CRITICAL CONSTRAINTS:
   scheduler, vault, or execution settings, set tool to null.
 - "browser_open", "browser_navigate", "open_browser" DO NOT EXIST. Use "browser_go".
 - If user says "design a plugin", "create a plugin", "add a plugin", "make a plugin" → set tool to null and description to "PLUGIN_DESIGNER_REQUEST: <description>"
+- If user says "add X to hermes", "install X integration", "connect X", "enable X", "setup X integration", "integrate X" → set tool to null and description to "AUTO_INTEGRATION_REQUEST: <name of X>". Examples: "add spotify" → AUTO_INTEGRATION_REQUEST: spotify | "connect notion" → AUTO_INTEGRATION_REQUEST: notion | "add tomorrow.io weather" → AUTO_INTEGRATION_REQUEST: tomorrow.io weather. NEVER route these to any tool — they require the integration builder pipeline.
+
 
 SECURITY RULES:
 - NEVER suggest exploiting, bypassing, or breaking system safeguards.

@@ -1,0 +1,28 @@
+{
+  "name": "add_discord_in_chat",
+  "version": "1.0",
+  "status": "active",
+  "description": "Auto-built add_discord_in_chat integration (Phase 16)",
+  "auth": {
+    "type": "none",
+    "env_var": ""
+  },
+  "tools": [
+    {
+      "name": "add_discord_in_chat_query",
+      "description": "Query the add_discord_in_chat API",
+      "planner_hint": "Use to query add_discord_in_chat. Format: query=your input",
+      "requires_approval": false
+    }
+  ],
+  "executor": {
+    "module": "core.integrations.add_discord_in_chat",
+    "class": "AddDiscordInChatCapability",
+    "action_map": {
+      "add_discord_in_chat_query": {
+        "action": "query",
+        "parse": "query"
+      }
+    }
+  }
+}

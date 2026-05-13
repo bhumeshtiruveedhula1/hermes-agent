@@ -117,13 +117,65 @@
     "message_count": 4
   },
   {
-    "id": "conv_20260507_024400_d716fa",
+    "id": "conv_20260508_044411_8d36b2",
+    "title": "New Mission",
+    "summary": "",
+    "tools_used": [
+      "browser_go",
+      "browser_read"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-08T04:44:11.668934",
+    "updated_at": "2026-05-08T04:47:07.210206",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260508_071031_760fd6",
+    "title": "whatsapp_send",
+    "summary": "Used whatsapp_send. [ERROR] Twilio API error 400: {\"code\":21211,\"message\":\"The 'To' number +91 is no...",
+    "tools_used": [
+      "whatsapp_send"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-08T07:10:31.722121",
+    "updated_at": "2026-05-08T07:28:00.383590",
+    "message_count": 3
+  },
+  {
+    "id": "conv_20260508_073354_9a1e39",
     "title": "New Mission",
     "summary": "",
     "tools_used": [],
     "pinned": false,
+    "created_at": "2026-05-08T07:33:54.772292",
+    "updated_at": "2026-05-08T07:36:05.635270",
+    "message_count": 1
+  },
+  {
+    "id": "conv_20260508_081911_2f17cb",
+    "title": "Browsed GitHub",
+    "summary": "Used github_repos. Repo: bhumeshtiruveedhula1/DEEP_FAKE_DETECTION_IN_CORPORATE_SECTORS\nDescription:...",
+    "tools_used": [
+      "whatsapp_send",
+      "github_repos",
+      "telegram_send",
+      "browser_go"
+    ],
+    "pinned": false,
+    "created_at": "2026-05-08T08:19:11.106483",
+    "updated_at": "2026-05-08T08:22:39.478758",
+    "message_count": 4
+  },
+  {
+    "id": "conv_20260507_024400_d716fa",
+    "title": "Wrote file",
+    "summary": "Used fs_write. Written: hello...",
+    "tools_used": [
+      "fs_write"
+    ],
+    "pinned": false,
     "created_at": "2026-05-07T02:44:00.213071",
-    "updated_at": "2026-05-07T02:44:00.213076",
-    "message_count": 0
+    "updated_at": "2026-05-08T09:06:22.310254",
+    "message_count": 3
   }
 ]

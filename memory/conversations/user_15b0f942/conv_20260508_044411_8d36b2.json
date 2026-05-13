@@ -1,0 +1,24 @@
+{
+  "id": "conv_20260508_044411_8d36b2",
+  "title": "New Mission",
+  "created_at": "2026-05-08T04:44:11.668934",
+  "updated_at": "2026-05-08T04:47:07.210206",
+  "messages": [
+    {
+      "role": "hermes",
+      "text": "[BLOCKED] Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.google.com/search?q=movie+tickets+for+Biker\", waiting until \"domcontentloaded\"\n\n\n[BLOCKED] ",
+      "ts": "2026-05-08T04:47:07.210185",
+      "tools": [
+        "browser_go",
+        "browser_read"
+      ]
+    }
+  ],
+  "tools_used": [
+    "browser_go",
+    "browser_read"
+  ],
+  "summary": "",
+  "pinned": false,
+  "user_id": "user_15b0f942"
+}
