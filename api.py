@@ -681,6 +681,13 @@ async def chat_mission(req: ConvMessageRequest, request: Request):
         except Exception:
             pass  # skill detection must never crash chat flow
 
+        # Phase 17: proactive memory extraction — scan this turn for saveable user facts
+        try:
+            um = UserMemory(user_id)
+            um.proactive_extract(req.message, result, hermes_agents.manager_llm)
+        except Exception:
+            pass  # proactive extraction must never crash chat flow
+
         # Auto-title after first exchange
         conv = conv_store.get(req.conv_id, user_id=user_id)
         if conv and len(conv["messages"]) == 2:
