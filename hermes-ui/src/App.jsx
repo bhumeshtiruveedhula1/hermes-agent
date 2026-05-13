@@ -12,6 +12,8 @@ import History from "./pages/History"
 import Login from "./pages/Login"
 import Admin from "./pages/Admin"
 import Missions from "./pages/Missions"
+import Memory from "./pages/Memory"
+import Skills from "./pages/Skills"
 import "./App.css"
 import ApprovalModal from "./components/ApprovalModal"
 
@@ -24,7 +26,7 @@ function applyUserHeader(userId) {
   }
 }
 
-const BASE_TABS = ["Overview", "Chat", "Missions", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History"]
+const BASE_TABS = ["Overview", "Chat", "Missions", "Agents", "Files", "Audit Log", "Browser", "Plugins", "History", "Memory", "Skills"]
 
 export default function App() {
   const [tab, setTab]                     = useState("Overview")
@@ -35,6 +37,8 @@ export default function App() {
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [missionEvents, setMissionEvents]  = useState([])   // Phase 15
   const [queueTick, setQueueTick]          = useState(0)    // Phase 15: WS queue push
+  const [memoryEvents, setMemoryEvents]    = useState([])   // Phase 17
+  const [skillCandidate, setSkillCandidate] = useState(null) // Phase 17
 
   // Phase 11: Auth state
   const [user, setUser] = useState(() => {
@@ -99,6 +103,12 @@ export default function App() {
       if (data.type === "approval_resolved") {
         setPendingApprovals(prev => prev.filter(a => a.id !== data.id))
       }
+      if (data.type === "skill_candidate") {         // Phase 17
+        setSkillCandidate(data)
+      }
+      if (data.type === "skill_saved" || data.type === "skill_loaded") {
+        setMemoryEvents(prev => [data, ...prev].slice(0, 50))
+      }
     }
     setWs(socket)
     return () => socket.close()
@@ -155,7 +165,8 @@ export default function App() {
         <div className="ticker">
           <div className="ticker-inner">
             {[
-              ["PHASE",    "15 COMPLETE — AUTONOMOUS MISSION PLANNER LIVE"],
+              ["PHASE",    "17 COMPLETE — MEMORY + SKILLS + USER INTELLIGENCE"],
+              ["MEMORY",   "SQLITE FTS5 · USER PROFILE · SOUL.MD · SKILL MEMORY"],
               ["MODEL",    "QWEN2.5-CODER:14B — RTX 4060 HYBRID"],
               ["MISSIONS", "MULTI-STEP · QUEUE · TEMPLATES · LIVE FEED"],
               ["AUDIT",    "ALL ACTIONS LOGGED"],
@@ -191,6 +202,8 @@ export default function App() {
           {tab === "Browser"   && <Browser />}
           {tab === "Plugins"   && <Plugins />}
           {tab === "History"   && <History />}
+          {tab === "Memory"   && <Memory skillCandidate={skillCandidate} onSkillSaved={() => setSkillCandidate(null)} />}
+          {tab === "Skills"   && <Skills liveEvents={memoryEvents} />}
           {tab === "Admin" && user.role === "admin" && <Admin user={user} />}
         </main>
 
